@@ -1,5 +1,7 @@
 # 公館商圈數位孿生 — 機器人交通指揮模擬
 
+**▶ 線上展示:https://sanwanh.github.io/gongguan-traffic-director/**
+
 台北公館路口(羅斯福路 × 舟山路 × 巷90)的數位孿生,一台人形機器人 KBot
 站在路口指揮交通。場景來自實測的 Blender V54 掃描,車道、斑馬線、公車月台、
 停止線全部從 GLB 幾何量出來,不是憑感覺畫的。
@@ -135,7 +137,7 @@ python3 mujoco/stamp_versions.py
 
 ## 授權與素材出處
 
-本專案的程式碼授權**尚未決定**(repo 目前為 private)。第三方素材:
+程式碼採 **MIT** 授權,見 [`LICENSE`](LICENSE)。第三方素材:
 
 | 素材 | 來源 | 授權 |
 | --- | --- | --- |

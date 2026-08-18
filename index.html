@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>公館商圈數位孿生 — 機器人交通指揮模擬</title>
+<meta name="description" content="台北公館路口的數位孿生:人形機器人 KBot 在路口指揮交通。three.js、零 CDN、完全離線可跑。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='6' fill='%23071019'/%3E%3Cpath d='M32 10 14 20v24l18 10 18-10V20L32 10Z' fill='none' stroke='%2340d69a' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#071019; --panel:#0c1722; --line:#26394a; --line-strong:#3a5368;
+    --text:#f2f7fa; --muted:#9bb0bf; --subtle:#6f8798; --green:#40d69a;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:48px 24px 72px}
+  header{border-bottom:1px solid var(--line); padding-bottom:28px; margin-bottom:32px}
+  .eyebrow{
+    margin:0 0 8px; color:var(--subtle); font-size:11px;
+    font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+  }
+  h1{margin:0 0 12px; font-size:30px; line-height:1.25; font-weight:700}
+  .lede{margin:0; color:var(--muted); font-size:15px; max-width:62ch}
+  .cta{display:flex; flex-wrap:wrap; gap:10px; margin:28px 0 0}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:11px 18px; border:1px solid var(--line-strong); border-radius:4px;
+    color:var(--text); background:#132431; text-decoration:none;
+    font-size:13px; font-weight:650; transition:border-color .18s,background-color .18s;
+  }
+  .btn:hover{border-color:#4d7288; background:#193041}
+  .btn.primary{border-color:#2e7a5d; color:#06131a; background:var(--green)}
+  .btn.primary:hover{background:#5ae0ae}
+  figure{margin:34px 0 0}
+  figure img{width:100%; display:block; border:1px solid var(--line); border-radius:4px}
+  figcaption{margin-top:9px; color:var(--subtle); font-size:11px}
+  h2{margin:44px 0 14px; font-size:17px; font-weight:700}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px}
+  .card{padding:15px 16px; border:1px solid var(--line); border-radius:4px; background:var(--panel)}
+  .card h3{margin:0 0 6px; font-size:13px; font-weight:650}
+  .card p{margin:0; color:var(--muted); font-size:12px}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  td{padding:8px 0; border-bottom:1px solid var(--line); color:var(--muted)}
+  td:first-child{color:var(--text); width:38%}
+  kbd{
+    padding:2px 6px; border:1px solid var(--line-strong); border-radius:3px;
+    background:#152532; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px;
+  }
+  .note{
+    margin-top:44px; padding:14px 16px; border:1px solid #6a5220;
+    border-radius:4px; color:#dbc68e; background:#241c0c; font-size:12px;
+  }
+  footer{margin-top:40px; padding-top:22px; border-top:1px solid var(--line);
+    color:var(--subtle); font-size:12px}
+  footer a{color:var(--muted)}
+  @media (max-width:560px){ h1{font-size:24px} .wrap{padding:32px 18px 56px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Gongguan Digital Twin</p>
+    <h1>公館商圈數位孿生 —<br>機器人交通指揮模擬</h1>
+    <p class="lede">
+      台北公館路口(羅斯福路 × 舟山路 × 巷90)的數位孿生,一台人形機器人 KBot
+      站在路口指揮交通。車道、斑馬線、公車月台、停止線全部從實測的 Blender
+      場景幾何量出來。純前端、零 CDN、完全離線可跑。
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="viewer/traffic_director.html">開啟模擬 →</a>
+      <a class="btn" href="https://github.com/Sanwanh/gongguan-traffic-director">GitHub 原始碼</a>
+    </div>
+  </header>
+
+  <figure>
+    <img src="docs/screenshots/v9_after_1920.png"
+         alt="公館路口的 3D 模擬畫面:KBot 在斑馬線上指揮,羅斯福路上有汽機車與公車">
+    <figcaption>羅斯福路放行相位。右側面板可切「指揮 / 模擬 / 參數」三個分頁。</figcaption>
+  </figure>
+
+  <h2>操作方式</h2>
+  <table>
+    <tr><td>旋轉視角</td><td>左鍵拖曳</td></tr>
+    <tr><td>平移視角</td><td><kbd>Shift</kbd> + 左鍵拖曳,或右鍵拖曳</td></tr>
+    <tr><td>縮放</td><td>滾輪</td></tr>
+    <tr><td>聚焦選取物</td><td>點選物件後按 <kbd>F</kbd>,或雙擊</td></tr>
+    <tr><td>切換正視角</td><td>右上角 ViewCube 的六個面</td></tr>
+  </table>
+
+  <h2>裡面有什麼</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>3D Viewport</h3>
+      <p>ViewCube、10 個預設視角、5 種相機模式、物件選取與平滑聚焦、6 個圖層開關。
+         所有視角切換都是 620 ms 緩動過渡。</p>
+    </div>
+    <div class="card">
+      <h3>台灣交通規則</h3>
+      <p>交通部駕駛人手冊的官方手勢子集、五相位循環含黃燈尾段、公車專用道與靠站、
+         行人交錯式穿越、機車兩段式左轉。</p>
+    </div>
+    <div class="card">
+      <h3>94 個可調參數</h3>
+      <p>車速、車流量、相位秒數、跟車間距、KBot 勤務、外觀配色都能即時調。
+         可存成 JSON 或複製成程式碼片段。</p>
+    </div>
+    <div class="card">
+      <h3>MuJoCo 動作</h3>
+      <p>機器人的手勢與走路不是手 K 的關鍵影格,是 MuJoCo 位置控制動力學生成後
+         烘焙回 GLB 的。</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>免責聲明</strong> — 這是封閉場域的數位孿生展示,不是公共道路的實際交通指揮系統。
+    私人機器人不具法定交通指揮權。路口幾何雖對照實景校準,但號誌時制、車流組成與
+    指揮行為都是模擬,不代表該路口的真實運作。
+  </div>
+
+  <footer>
+    程式碼 MIT 授權 ·
+    行人模型衍生自 <a href="https://github.com/KhronosGroup/glTF-Sample-Assets">Khronos glTF-Sample-Assets</a>(CC BY 4.0)·
+    <a href="https://threejs.org/">three.js</a> r170(MIT)
+  </footer>
+</div>
+</body>
+</html>
