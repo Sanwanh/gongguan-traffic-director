@@ -63,6 +63,7 @@ GLB 量出來的實測值,改了模擬就會偏離實景。
 ## 專案結構
 
 ```
+blender/                           Blender V54 場景原始檔(102MB,Git LFS)
 viewer/
   traffic_director.html/.css/.js   主程式(場景、相機、模擬、UI)
   traffic_simulation_core.mjs      純函式:車道幾何、行人狀態機、可調常數
@@ -75,6 +76,28 @@ serve.py                           靜態站(正確的快取標頭)
 SPEC_VIEWER_V2.md                  逐節設計紀錄 §1–§22
 SPEC_MUJOCO.md                     KBot 動作管線
 ```
+
+---
+
+## Blender 原始檔(Git LFS)
+
+`blender/gongguan_v54_traffic_director_demo.blend`(102MB)用 **Git LFS** 存放。
+clone 之前要先裝好 LFS,否則拿到的會是一個指標檔而不是真的 .blend:
+
+```bash
+brew install git-lfs      # 或 apt install git-lfs
+git lfs install
+git clone https://github.com/Sanwanh/gongguan-traffic-director.git
+```
+
+已經 clone 過才裝 LFS 的話:
+
+```bash
+git lfs install && git lfs pull
+```
+
+**只想跑 viewer 的話不需要這個檔** —— viewer 吃的是 `viewer/models/` 裡已匯出的 GLB。
+可以用 `GIT_LFS_SKIP_SMUDGE=1 git clone ...` 跳過 102MB 的下載。
 
 ---
 
