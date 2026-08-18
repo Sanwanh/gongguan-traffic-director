@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>公館 KBot 交通指揮數位孿生</title>
+  <meta
+    name="description"
+    content="以公館 Blender 場景、KBot ORCA 雙手與台灣官方規則建立的封閉場域交通指揮模擬。"
+  >
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2308151b'/%3E%3Cpath d='M32 8 13 18v28l19 10 19-10V18L32 8Z' fill='%2338e6b0'/%3E%3Cpath d='M23 27h18v15H23z' fill='%2308151b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="traffic_director.css?v=cc0b1a26">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="viewport" aria-label="公館交通指揮三維模擬">
+      <div
+        id="scene"
+        class="scene"
+        data-testid="traffic-scene"
+        aria-label="從指定 gongguan_v54_traffic_director_demo.blend 匯出的公館實景"
+      ></div>
+
+      <header class="topbar">
+        <div class="brand-block">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img">
+              <path d="M12 2 3.5 6.8v10.4L12 22l8.5-4.8V6.8L12 2Z"/>
+              <path d="m8 10 4-2.2 4 2.2v4l-4 2.2L8 14v-4Z"/>
+            </svg>
+          </span>
+          <div>
+            <p class="eyebrow">GONGGUAN DIGITAL TWIN</p>
+            <h1>交通指揮模擬台</h1>
+          </div>
+        </div>
+        <div class="model-status" id="modelStatus" role="status" aria-live="polite">
+          <span class="status-dot is-loading"></span>
+          <span>載入指定 V54 Blender 實景</span>
+        </div>
+      </header>
+
+      <aside class="metrics-panel" aria-label="即時模擬數據">
+        <div class="metric">
+          <span class="metric-label">車流</span>
+          <strong id="vehicleCount">0</strong>
+          <span class="metric-unit">輛</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">行人</span>
+          <strong id="pedestrianCount">0</strong>
+          <span class="metric-unit">人 · 穿越 <b id="crossingCount">0</b></span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">通過</span>
+          <strong id="throughputCount">0</strong>
+          <span class="metric-unit">次</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">碰撞</span>
+          <strong id="collisionCount">0</strong>
+          <span class="metric-unit">件</span>
+        </div>
+      </aside>
+
+      <!-- §21 右上角導航群:ViewCube + Home / Iso / Focus / 投影 -->
+      <div class="viewport-gizmo" aria-label="視角導航">
+        <div class="viewcube" id="viewCube">
+          <div class="viewcube-stage" id="viewCubeStage">
+            <button class="viewcube-face" type="button" data-cube-face="front"
+              aria-label="正面視角(從西南側看羅斯福路)"
+              title="正面視角(從西南側看羅斯福路)"><span>FRONT</span></button>
+            <button class="viewcube-face" type="button" data-cube-face="back"
+              aria-label="背面視角(從東北側看羅斯福路)"
+              title="背面視角(從東北側看羅斯福路)"><span>BACK</span></button>
+            <button class="viewcube-face" type="button" data-cube-face="right"
+              aria-label="右側視角(沿羅斯福路往西北看)"
+              title="右側視角(沿羅斯福路往西北看)"><span>RIGHT</span></button>
+            <button class="viewcube-face" type="button" data-cube-face="left"
+              aria-label="左側視角(沿羅斯福路往東南看)"
+              title="左側視角(沿羅斯福路往東南看)"><span>LEFT</span></button>
+            <button class="viewcube-face" type="button" data-cube-face="top"
+              aria-label="正上方俯視" title="正上方俯視"><span>TOP</span></button>
+            <span class="viewcube-face is-floor" data-cube-face="bottom"
+              aria-hidden="true"></span>
+          </div>
+        </div>
+        <div class="gizmo-rail" role="group" aria-label="相機工具">
+          <button class="gizmo-button" type="button" data-camera-action="home"
+            aria-label="重置視角(Home)" title="重置視角 · Home 鍵">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 11 12 4l8 7"/><path d="M6.5 9.6V19h11V9.6"/>
+            </svg>
+          </button>
+          <button class="gizmo-button" type="button" data-view="isometric"
+            aria-label="等角視角(Isometric)" title="等角視角 Isometric">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/>
+              <path d="M12 12 4 7.5M12 12l8-4.5M12 12v9"/>
+            </svg>
+          </button>
+          <button class="gizmo-button" type="button" id="focusSelected"
+            data-camera-action="focus" disabled
+            aria-label="聚焦所選物件(F)" title="聚焦所選物件 · F 鍵">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.2"/>
+              <path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/>
+            </svg>
+          </button>
+          <button class="gizmo-button is-wide" type="button" id="projectionToggle"
+            aria-pressed="false" data-camera-action="projection"
+            aria-label="切換透視 / 正交投影" title="透視 Perspective ↔ 正交 Orthographic"
+          >Persp</button>
+        </div>
+      </div>
+
+      <!-- §21 左下角:View 選單(預設視角 + 相機模式)與 Layers 選單 -->
+      <div class="viewport-menus" aria-label="視角與圖層">
+        <div class="menu-holder">
+          <button class="menu-button" type="button" id="viewMenuButton"
+            aria-haspopup="true" aria-expanded="false" aria-controls="viewMenu"
+            aria-label="視角選單">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6.5 12 3l9 3.5-9 3.5-9-3.5Z"/>
+              <path d="m3 12 9 3.5L21 12M3 17.5 12 21l9-3.5"/>
+            </svg>
+            <span>視角</span>
+            <i class="menu-caret" aria-hidden="true"></i>
+          </button>
+          <div class="menu-popover" id="viewMenu" role="group"
+            aria-label="預設視角與相機模式" hidden>
+            <p class="menu-title">預設視角</p>
+            <div class="camera-toolbar" aria-label="攝影機視角">
+              <button class="icon-button is-active" type="button" data-camera="overview">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h4l2-2h4l2 2h4v11H4V7Z"/>
+                  <circle cx="12" cy="12.5" r="3.2"/>
+                </svg>
+                <span>鳥瞰</span>
+              </button>
+              <button class="icon-button" type="button" data-view="isometric">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/>
+                  <path d="M12 12 4 7.5M12 12l8-4.5M12 12v9"/>
+                </svg>
+                <span>等角</span>
+              </button>
+              <button class="icon-button" type="button" data-camera="street">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m4 20 5-16h6l5 16M8 12h8M6 17h12"/>
+                </svg>
+                <span>街道</span>
+              </button>
+              <button class="icon-button" type="button" data-camera="robot">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="6" y="7" width="12" height="10" rx="2"/>
+                  <path d="M12 3v4M9 12h.01M15 12h.01M9 17v3M15 17v3"/>
+                </svg>
+                <span>跟隨 KBot</span>
+              </button>
+              <button class="icon-button" type="button" data-view="intersection">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+                </svg>
+                <span>路口</span>
+              </button>
+              <button class="icon-button" type="button" data-camera="busstop">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="4" y="5" width="16" height="11" rx="2"/>
+                  <path d="M4 11h16M7 20v-2M17 20v-2"/>
+                </svg>
+                <span>公車站</span>
+              </button>
+              <button class="icon-button" type="button" data-camera="crosswalk">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 20 8 4M10 20 14 4M16 20 20 4"/>
+                </svg>
+                <span>行穿線</span>
+              </button>
+              <button class="icon-button" type="button" data-camera="hook">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 19h9a5 5 0 0 0 0-10H8"/>
+                  <path d="m11 5-3 4 3 4"/>
+                </svg>
+                <span>巷90</span>
+              </button>
+            </div>
+            <p class="menu-title">相機模式</p>
+            <div class="camera-tools" role="group" aria-label="相機模式">
+              <button class="chip-button is-active" type="button"
+                data-camera-mode="orbit">Orbit</button>
+              <button class="chip-button" type="button"
+                data-camera-mode="follow">Follow</button>
+              <button class="chip-button" type="button"
+                data-camera-mode="fixed">Fixed</button>
+              <button class="chip-button" type="button"
+                data-camera-mode="top">Top</button>
+              <button class="chip-button" type="button"
+                data-camera-mode="street">Street</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="menu-holder">
+          <button class="menu-button" type="button" id="layersMenuButton"
+            aria-haspopup="true" aria-expanded="false" aria-controls="layersMenu"
+            aria-label="圖層選單">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m12 3 8.5 4.5L12 12 3.5 7.5 12 3Z"/>
+              <path d="m4.5 12 7.5 4 7.5-4M4.5 16.5 12 20.5l7.5-4"/>
+            </svg>
+            <span>圖層</span>
+            <i class="menu-caret" aria-hidden="true"></i>
+          </button>
+          <div class="menu-popover" id="layersMenu" role="group"
+            aria-label="場景圖層" hidden>
+            <p class="menu-title">場景圖層</p>
+            <div class="layer-list" id="layerList"></div>
+          </div>
+        </div>
+
+        <span class="camera-selection" id="cameraSelectionLabel">未選取物件</span>
+      </div>
+
+      <p class="viewport-hint">
+        <span>拖曳旋轉 · Shift+拖曳平移 · 滾輪縮放 · 點選物件後按 F 或雙擊聚焦</span>
+        <span class="camera-notice" id="cameraNotice" hidden></span>
+      </p>
+
+      <div class="scene-legend" aria-label="圖例">
+        <span><i class="legend-swatch vehicle"></i>車輛</span>
+        <span><i class="legend-swatch pedestrian"></i>行人</span>
+        <span><i class="legend-swatch controller"></i>KBot</span>
+        <span id="kbotPostLabel" class="legend-station">進場中</span>
+      </div>
+    </section>
+
+    <aside class="control-panel" aria-label="交通指揮控制面板">
+      <div class="legal-boundary">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3 3.8 19h16.4L12 3Z"/>
+          <path d="M12 9v4M12 16h.01"/>
+        </svg>
+        <div>
+          <strong>封閉場域／數位孿生展示</strong>
+          <p>非公共道路實際交通指揮系統；私人 KBot 不具法定指揮權。</p>
+        </div>
+      </div>
+
+      <section class="phase-card" aria-labelledby="phaseTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">ACTIVE COMMAND</p>
+            <h2 id="phaseTitle">目前指令</h2>
+          </div>
+          <span class="mode-badge" id="modeBadge">自動</span>
+        </div>
+        <div class="active-phase" id="activePhase" aria-live="polite">
+          <span class="phase-signal is-stop" id="phaseSignal" aria-hidden="true"></span>
+          <div>
+            <strong id="phaseLabel">全向停止</strong>
+            <p id="phaseDescription">所有方向保持停止，等待路口清空。</p>
+          </div>
+          <time id="phaseCountdown" aria-label="相位剩餘時間">02.0</time>
+        </div>
+        <div
+          class="command-decision is-active"
+          id="commandDecision"
+          data-state="active"
+          data-testid="command-decision"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="decision-heading">
+            <span class="decision-state" id="decisionState">執行中</span>
+            <strong id="requestedCommand">全向停止</strong>
+          </div>
+          <dl class="decision-facts">
+            <div><dt>請求</dt><dd id="requestedGesture">ALL STOP</dd></div>
+            <div><dt>KBot 動作</dt><dd id="activeGesture">全向停止</dd></div>
+            <div><dt>候選相位</dt><dd id="candidatePhase">全向停止</dd></div>
+          </dl>
+          <p id="decisionReason">緊急停止優先，所有方向保持停止。</p>
+        </div>
+        <div class="safety-locks" id="safetyLocks" aria-live="polite">
+          <span class="lock-pill is-safe">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m5 12 4 4L19 6"/>
+            </svg>
+            安全閘門正常
+          </span>
+        </div>
+      </section>
+
+      <section class="command-section" aria-labelledby="commandTitle">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">KBot GESTURE CONTROL</p>
+            <h2 id="commandTitle">手勢與 WALK 請求</h2>
+          </div>
+        </div>
+        <div class="command-grid">
+          <button
+            class="command-button stop"
+            type="button"
+            data-command
+            data-request-kind="gesture"
+            data-gesture="ALL_STOP"
+            data-phase="all_stop"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3h8l5 5v8l-5 5H8l-5-5V8l5-5Z"/>
+              <path d="M12 7v6M12 17h.01"/>
+            </svg>
+            <span><strong>全向停止</strong><small>立即生效</small></span>
+          </button>
+          <button
+            class="command-button go"
+            type="button"
+            data-command
+            data-request-kind="gesture"
+            data-gesture="STOP_FRONT_BACK_GO_LEFT_RIGHT"
+            data-phase="roosevelt_flow"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M14 7l5 5-5 5"/>
+            </svg>
+            <span><strong>兩臂左右平伸</strong><small>前後停／左右通行</small></span>
+          </button>
+          <button
+            class="command-button walk"
+            type="button"
+            data-command
+            data-request-kind="walk_signal"
+            data-phase="pedestrian_crossing"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="13" cy="4" r="2"/>
+              <path d="m10 21 1-6-3-3 2-5 4 1 3 3M12 15l4 6"/>
+            </svg>
+            <span><strong>行人 WALK 請求</strong><small>KBot 全停＋行人綠燈</small></span>
+          </button>
+          <button
+            class="command-button lane"
+            type="button"
+            data-command
+            data-request-kind="gesture"
+            data-gesture="GO_FROM_LEFT"
+            data-phase="lane90_release"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21V5M7 10l5-5 5 5"/>
+            </svg>
+            <span><strong>左方來車速行</strong><small>巷90單向／不提高速限</small></span>
+          </button>
+        </div>
+        <p class="command-note">採交通部駕駛人手冊的官方手勢子集；任何 GO 都先全停、淨空並確認動作穩定。</p>
+      </section>
+
+      <section class="automation-section" aria-labelledby="automationTitle">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">SIMULATION</p>
+            <h2 id="automationTitle">模擬控制</h2>
+          </div>
+        </div>
+        <div class="param-group">
+          <p class="group-title">號誌節奏</p>
+          <label class="switch-row" for="autoMode">
+            <span>
+              <strong>自動循環</strong>
+              <small>依 Blender 相位順序執行</small>
+            </span>
+            <input id="autoMode" type="checkbox" checked>
+            <i class="switch" aria-hidden="true"></i>
+          </label>
+          <div class="field-row">
+            <span class="field-label">
+              <strong>節奏預設</strong>
+              <small>一鍵套用下面三個秒數</small>
+            </span>
+            <div class="segmented" id="pacingSegmented" role="group" aria-label="相位節奏">
+              <button type="button" data-pacing="brisk">快速</button>
+              <button type="button" data-pacing="standard" class="is-active">標準</button>
+              <button type="button" data-pacing="filming">錄影</button>
+            </div>
+          </div>
+          <select id="pacingPreset" class="mirror-select" tabindex="-1" aria-hidden="true">
+            <option value="brisk">快速</option>
+            <option value="standard" selected>標準</option>
+            <option value="filming">錄影</option>
+          </select>
+          <label class="slider-row" for="durationRoosevelt">
+            <span class="slider-head">
+              <strong>羅斯福路綠燈</strong>
+              <output class="slider-value" id="durationRooseveltValue" for="durationRoosevelt">24 秒</output>
+            </span>
+            <input id="durationRoosevelt" class="duration-input" type="range" min="3" max="120" step="1">
+            <small>下一次輪到這個相位時生效</small>
+          </label>
+          <label class="slider-row" for="durationPedestrian">
+            <span class="slider-head">
+              <strong>行人穿越綠燈</strong>
+              <output class="slider-value" id="durationPedestrianValue" for="durationPedestrian">24 秒</output>
+            </span>
+            <input id="durationPedestrian" class="duration-input" type="range" min="3" max="120" step="1">
+            <small>交錯式可在分向島續等下一輪</small>
+          </label>
+          <label class="slider-row" for="durationLane90">
+            <span class="slider-head">
+              <strong>巷90 放行</strong>
+              <output class="slider-value" id="durationLane90Value" for="durationLane90">16 秒</output>
+            </span>
+            <input id="durationLane90" class="duration-input" type="range" min="3" max="120" step="1">
+            <small>低於 15 秒機器人走不到巷口</small>
+          </label>
+        </div>
+
+        <div class="param-group">
+          <p class="group-title">車流</p>
+          <div class="field-row">
+            <span class="field-label">
+              <strong>車流量</strong>
+              <small>換檔即以現行 seed 重新生成</small>
+            </span>
+            <div class="segmented" id="densitySegmented" role="group" aria-label="車流模式">
+              <button type="button" data-density="sparse">稀疏</button>
+              <button type="button" data-density="normal" class="is-active">一般</button>
+              <button type="button" data-density="peak">尖峰</button>
+            </div>
+          </div>
+          <select id="trafficDensity" class="mirror-select" tabindex="-1" aria-hidden="true">
+            <option value="sparse">稀疏</option>
+            <option value="normal" selected>一般</option>
+            <option value="peak">尖峰</option>
+          </select>
+          <button class="secondary-button" id="reseedButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>
+            </svg>
+            重新產生 seeded 人車
+          </button>
+          <div
+            class="spawn-summary"
+            id="spawnSummary"
+            data-testid="actor-mix"
+            aria-label="目前生成的人車組成"
+            aria-live="polite"
+          >
+            <span><b id="carCount">0</b> 汽車</span>
+            <span><b id="scooterCount">0</b> 速克達</span>
+            <span><b id="motorcycleCount">0</b> 重機</span>
+            <span><b id="busCount">0</b> 公車</span>
+            <span><b id="bicycleCount">0</b> 單車</span>
+            <span><b id="sidewalkPedestrianCount">0</b> 行人</span>
+            <span id="trafficModeLabel">模式 一般</span>
+            <span><b id="busLaneCount">2</b> 公車專用道</span>
+            <span id="hookWaitChip" hidden><b id="hookWaitCount">0</b> 待轉中</span>
+            <span><b id="boardingCount">0</b> 上車人次</span>
+            <span id="spawnAdjustNote" hidden></span>
+          </div>
+        </div>
+
+        <div class="param-group">
+          <p class="group-title">畫面與效能</p>
+          <label class="switch-row" for="highPerformance">
+            <span>
+              <strong>高效能渲染</strong>
+              <small>開啟 60 FPS；關閉為省電 30 FPS</small>
+            </span>
+            <input id="highPerformance" type="checkbox" checked>
+            <i class="switch" aria-hidden="true"></i>
+          </label>
+          <label class="switch-row" for="motionEffects">
+            <span>
+              <strong>動作效果</strong>
+              <small>關閉後 KBot 與行人動作簡化</small>
+            </span>
+            <input id="motionEffects" type="checkbox" checked>
+            <i class="switch" aria-hidden="true"></i>
+          </label>
+          <label class="switch-row" for="recordingMode">
+            <span>
+              <strong>錄影模式</strong>
+              <small>隱藏右側面板,畫面滿版</small>
+            </span>
+            <input id="recordingMode" type="checkbox">
+            <i class="switch" aria-hidden="true"></i>
+          </label>
+        </div>
+
+        <details class="param-group advanced-group" id="kbotPostGroup">
+          <summary>
+            <span>機器人崗位微調</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m7 10 5 5 5-5"/>
+            </svg>
+          </summary>
+          <div class="advanced-body">
+            <label class="switch-row" for="kbotPostPreview">
+              <span>
+                <strong>崗位預覽</strong>
+                <small>顯示三個崗位標記，並讓 KBot 立刻站到選中的崗位；關閉即交還勤務狀態機</small>
+              </span>
+              <input id="kbotPostPreview" type="checkbox">
+              <i class="switch" aria-hidden="true"></i>
+            </label>
+            <div class="field-row">
+              <span class="field-label">
+                <strong>調整哪個崗位</strong>
+                <small>平時／羅斯福放行、行人相位、巷90 放行</small>
+              </span>
+              <div class="segmented" id="kbotPostSegmented" role="group" aria-label="KBot 崗位">
+                <button type="button" data-post="stand" class="is-active">平時</button>
+                <button type="button" data-post="crosswalk">行穿線</button>
+                <button type="button" data-post="lane90">巷90</button>
+              </div>
+            </div>
+            <select id="kbotPostTarget" class="mirror-select" tabindex="-1" aria-hidden="true">
+              <option value="stand" selected>平時崗位</option>
+              <option value="crosswalk">行穿線崗位</option>
+              <option value="lane90">巷90 崗位</option>
+            </select>
+            <label class="slider-row" for="kbotPostS">
+              <span class="slider-head">
+                <strong>縱向 s（沿羅斯福路）</strong>
+                <output class="slider-value" id="kbotPostSValue" for="kbotPostS">15.00 m</output>
+              </span>
+              <input id="kbotPostS" type="range" min="-20" max="26" step="0.01">
+              <small>直行行穿線畫線帶 s 10.59–16.30；行穿線崗位的 s 同時是換邊時的穿越中線</small>
+            </label>
+            <label class="slider-row" for="kbotPostT">
+              <span class="slider-head">
+                <strong>橫向 t（跨越方向）</strong>
+                <output class="slider-value" id="kbotPostTValue" for="kbotPostT">17.15 m</output>
+              </span>
+              <input id="kbotPostT" type="range" min="-18" max="18" step="0.01">
+              <small>路緣約 ±16.7；t −1.73–2.52 是 BRT 分向島的無畫線空白帶</small>
+            </label>
+            <label class="slider-row" for="kbotPostY">
+              <span class="slider-head">
+                <strong>站立面高度 y</strong>
+                <output class="slider-value" id="kbotPostYValue" for="kbotPostY">0.24 m</output>
+              </span>
+              <input id="kbotPostY" type="range" min="0" max="0.4" step="0.01">
+              <small>實測地面 +0.02：人行道 0.24、路面 0.02、月台 0.17</small>
+            </label>
+            <div class="post-verdict" id="kbotPostVerdict" aria-live="polite"></div>
+            <button class="secondary-button" id="kbotPostCopy" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 9h10v10H9zM5 15V5h10"/>
+              </svg>
+              複製設定（KBOT_POSTS 片段）
+            </button>
+            <button class="secondary-button" id="kbotPostReset" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>
+              </svg>
+              還原預設座標
+            </button>
+            <p class="post-note" id="kbotPostCopyNote" aria-live="polite">調好的值不會自動寫回原始碼，請用「複製設定」貼回 traffic_director.js。</p>
+            <textarea
+              id="kbotPostExport"
+              class="export-code"
+              rows="12"
+              readonly
+              hidden
+              aria-label="KBOT_POSTS 程式碼片段"
+            ></textarea>
+          </div>
+        </details>
+
+        <section class="param-console" aria-labelledby="paramConsoleTitle">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">ALL PARAMETERS</p>
+              <h2 id="paramConsoleTitle">全部參數</h2>
+            </div>
+            <span class="param-summary" id="paramSummary">
+              <b id="paramDirtyCount">0</b> 項已修改
+            </span>
+          </div>
+
+          <p class="param-restored-note" id="paramRestoredNote" hidden>
+            已從瀏覽器記憶還原 <b id="paramRestoredCount">0</b> 項上次調整的參數。
+          </p>
+
+          <input
+            id="paramSearch"
+            class="param-search"
+            type="search"
+            placeholder="搜尋參數名稱或 id（例如 車速、bus.dwell）"
+            autocomplete="off"
+          >
+
+          <div class="param-groups" id="paramGroups"></div>
+
+          <p class="param-respawn-note" id="paramRespawnNote" hidden>
+            有參數只影響下次生成，按下面的「重新產生」才會套用到場上人車。
+          </p>
+
+          <div class="param-actions">
+            <button class="secondary-button" id="paramRespawn" type="button">
+              重新產生人車
+            </button>
+            <button class="secondary-button" id="paramCopyCode" type="button">
+              複製成程式碼
+            </button>
+            <button class="secondary-button" id="paramExportJson" type="button">
+              匯出 JSON
+            </button>
+            <label class="secondary-button param-import" for="paramImportInput">
+              匯入 JSON
+              <input id="paramImportInput" type="file" accept="application/json,.json">
+            </label>
+            <button class="secondary-button danger" id="paramResetAll" type="button">
+              全部還原預設
+            </button>
+          </div>
+
+          <textarea
+            class="param-export"
+            id="paramExport"
+            rows="8"
+            readonly
+            hidden
+            aria-label="參數匯出內容"
+          ></textarea>
+        </section>
+
+        <details class="param-group advanced-group">
+          <summary>
+            <span>進階／驗收用</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m7 10 5 5 5-5"/>
+            </svg>
+          </summary>
+          <div class="advanced-body">
+            <label class="switch-row" for="downstreamBlocked">
+              <span>
+                <strong>下游堵塞測試</strong>
+                <small>驗證 GO 仍不得進入路口</small>
+              </span>
+              <input id="downstreamBlocked" type="checkbox">
+              <i class="switch danger" aria-hidden="true"></i>
+            </label>
+            <label class="switch-row" for="hookTurn">
+              <span>
+                <strong>機車待轉區(預設關閉)</strong>
+                <small>實景無此標線,開啟才由模擬加畫並讓機慢車兩段式左轉</small>
+              </span>
+              <input id="hookTurn" type="checkbox">
+              <i class="switch" aria-hidden="true"></i>
+            </label>
+          </div>
+        </details>
+      </section>
+
+      <details class="rule-details">
+        <summary>
+          <span>台灣規則與來源</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m7 10 5 5 5-5"/>
+          </svg>
+        </summary>
+        <div class="rule-copy">
+          <p>行人先沿人行道抵達路緣，只在穩定 WALK 時進入行人穿越道；已進入者會完成穿越。WALK 並非自創 KBot 招行手勢，而是 KBot 全向停車搭配行人號誌。車輛遇行人一律停讓，且安全閘門優先。</p>
+          <ul id="sourceList">
+            <li>載入官方來源中…</li>
+          </ul>
+          <p class="asset-credit">
+            行人模型改作自
+            <a href="https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CesiumMan"
+               target="_blank" rel="noreferrer">“Cesium Man” by Cesium</a>，
+            授權 CC BY 4.0；修改：移除商標貼圖、依身體部位切分材質、合成 Idle 動作。
+            完整授權記錄見 viewer/models/ASSETS.md。
+          </p>
+        </div>
+      </details>
+
+      <footer class="panel-footer">
+        <span id="ruleSetLabel">規則載入中</span>
+        <span>Seed <b id="seedLabel">—</b></span>
+      </footer>
+    </aside>
+  </main>
+
+  <div class="fatal-error" id="fatalError" role="alert" hidden></div>
+  <noscript>此模擬需要 JavaScript 才能執行。</noscript>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js?v=ce1fa418",
+        "three/addons/": "./vendor/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="traffic_director.js?v=95287acb"></script>
+</body>
+</html>

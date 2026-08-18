@@ -1,0 +1,45 @@
+{
+  "video": "<repo-root>/video/kbot_traffic_30s.mp4",
+  "poster": "<repo-root>/video/kbot_traffic_30s_poster.jpg",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationSeconds": 34.067,
+  "durationFrames": 1022,
+  "capturedFrames": 1355,
+  "trimmedFromHeadSeconds": 9.251,
+  "source": "http://localhost:8124/viewer/traffic_director.html",
+  "viewer": "V54 traffic_director V4 (SPEC_VIEWER_V2 §13/§14)",
+  "beats": [
+    {
+      "id": "a_overview",
+      "label": "鳥瞰:羅斯福路綠燈尾段,車輛停在實畫停止線",
+      "atSeconds": 0,
+      "atFrame": 0
+    },
+    {
+      "id": "b_walk",
+      "label": "跟拍:KBot 從人行道走進路口",
+      "atSeconds": 6.247,
+      "atFrame": 187
+    },
+    {
+      "id": "b_post",
+      "label": "行穿線:KBot 站上行穿線中央、舉手全停,行人穿越",
+      "atSeconds": 20.634,
+      "atFrame": 619
+    },
+    {
+      "id": "c_retreat",
+      "label": "公車站:相位要換了,KBot 主動退離車道",
+      "atSeconds": 28.917,
+      "atFrame": 868
+    },
+    {
+      "id": "c_safe",
+      "label": "退到中央公車站月台,安全閘門解除、車流才放行",
+      "atSeconds": 31.022,
+      "atFrame": 931
+    }
+  ]
+}

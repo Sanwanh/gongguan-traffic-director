@@ -1,0 +1,380 @@
+{
+  "schema_version": "1.0",
+  "description": "KBot Taiwan traffic-director gesture spec. Joint-space base poses + in-phase cyclic overlays, minimum-jerk transitions. Consumed by run_gesture_sim.py. Frame windows from traffic_rules/taiwan_traffic_director_rules.json demo_timeline. §16: cycle amplitudes moved to the shoulders and raised so every phase window swings the hand >= 0.234 m peak-to-peak (0.15 x body height); a few base joints shifted so the symmetric swing stays inside the hinge range.",
+  "fps": 24,
+  "total_frames": 1143,
+  "transition_frames": 12,
+  "settle_seconds": 2.0,
+  "sim": {
+    "substeps_per_frame": 20,
+    "timestep_s": 0.00208333,
+    "gravity": [
+      0.0,
+      0.0,
+      -9.81
+    ],
+    "floor_z": 0.0,
+    "base_weld": "freejoint removed; base body fixed to world at MJCF pos"
+  },
+  "actuation": {
+    "type": "position_pd_with_velocity_feedforward",
+    "classes": {
+      "robstride_04": {
+        "kp": 500.0,
+        "kv": 20.0,
+        "forcerange": 120.0
+      },
+      "robstride_03": {
+        "kp": 300.0,
+        "kv": 10.0,
+        "forcerange": 60.0
+      },
+      "robstride_02": {
+        "kp": 120.0,
+        "kv": 4.0,
+        "forcerange": 17.0
+      },
+      "robstride_00": {
+        "kp": 40.0,
+        "kv": 1.0,
+        "forcerange": 14.0
+      }
+    }
+  },
+  "standing_pose": {
+    "dof_left_hip_pitch_04": 0.0,
+    "dof_left_hip_roll_03": 0.0,
+    "dof_left_hip_yaw_03": 0.0,
+    "dof_left_knee_04": 0.0,
+    "dof_left_ankle_02": 0.0,
+    "dof_right_hip_pitch_04": 0.0,
+    "dof_right_hip_roll_03": 0.0,
+    "dof_right_hip_yaw_03": 0.0,
+    "dof_right_knee_04": 0.0,
+    "dof_right_ankle_02": 0.0
+  },
+  "gesture_poses": {
+    "ALL_STOP": {
+      "meaning_zh_tw": "右臂垂直上舉（肘微屈），左臂自然下垂；所有方向停止。",
+      "base": {
+        "dof_right_shoulder_pitch_03": -3.05,
+        "dof_right_shoulder_roll_03": 0.0,
+        "dof_right_shoulder_yaw_02": 0.0,
+        "dof_right_elbow_02": 0.55,
+        "dof_right_wrist_00": 0.0,
+        "dof_left_shoulder_pitch_03": 0.0,
+        "dof_left_shoulder_roll_03": 0.05,
+        "dof_left_shoulder_yaw_02": 0.0,
+        "dof_left_elbow_02": -0.1,
+        "dof_left_wrist_00": 0.0
+      },
+      "cycles": [
+        {
+          "joint": "dof_right_shoulder_pitch_03",
+          "amplitude_rad": 0.35,
+          "period_s": 2.0,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_elbow_02",
+          "amplitude_rad": 0.35,
+          "period_s": 2.0,
+          "phase_rad": 1.570796
+        },
+        {
+          "joint": "dof_right_wrist_00",
+          "amplitude_rad": 0.6,
+          "period_s": 1.5,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_left_shoulder_pitch_03",
+          "amplitude_rad": 0.35,
+          "period_s": 2.0,
+          "phase_rad": 3.141593
+        }
+      ]
+    },
+    "STOP_FRONT_BACK_GO_LEFT_RIGHT": {
+      "meaning_zh_tw": "兩臂左右平伸（肩 roll 90°）；右前臂肘屈伸招手（1.5s 週期，幅度約 40°），左臂平伸微擺。",
+      "base": {
+        "dof_right_shoulder_pitch_03": 0.0,
+        "dof_right_shoulder_roll_03": -1.32,
+        "dof_right_shoulder_yaw_02": 0.0,
+        "dof_right_elbow_02": 0.85,
+        "dof_right_wrist_00": 0.0,
+        "dof_left_shoulder_pitch_03": 0.0,
+        "dof_left_shoulder_roll_03": 1.32,
+        "dof_left_shoulder_yaw_02": 0.0,
+        "dof_left_elbow_02": -0.35,
+        "dof_left_wrist_00": 0.0
+      },
+      "cycles": [
+        {
+          "joint": "dof_right_shoulder_roll_03",
+          "amplitude_rad": 0.33,
+          "period_s": 2.0,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_elbow_02",
+          "amplitude_rad": 0.7,
+          "period_s": 1.3,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_wrist_00",
+          "amplitude_rad": 0.6,
+          "period_s": 1.3,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_left_shoulder_roll_03",
+          "amplitude_rad": 0.33,
+          "period_s": 2.0,
+          "phase_rad": 3.141593
+        },
+        {
+          "joint": "dof_left_elbow_02",
+          "amplitude_rad": 0.28,
+          "period_s": 1.3,
+          "phase_rad": 3.141593
+        }
+      ]
+    },
+    "ALL_STOP_PED": {
+      "meaning_zh_tw": "右臂維持上舉；左臂朝行穿線方向（前方 45°）緩慢水平掃動（4s 週期），示意行人通行。",
+      "base": {
+        "dof_right_shoulder_pitch_03": -3.05,
+        "dof_right_shoulder_roll_03": 0.0,
+        "dof_right_shoulder_yaw_02": 0.0,
+        "dof_right_elbow_02": 0.55,
+        "dof_right_wrist_00": 0.0,
+        "dof_left_shoulder_pitch_03": 0.9,
+        "dof_left_shoulder_roll_03": 0.3,
+        "dof_left_shoulder_yaw_02": 0.0,
+        "dof_left_elbow_02": -0.5,
+        "dof_left_wrist_00": 0.0
+      },
+      "cycles": [
+        {
+          "joint": "dof_left_shoulder_pitch_03",
+          "amplitude_rad": 0.4,
+          "period_s": 2.4,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_left_shoulder_roll_03",
+          "amplitude_rad": 0.22,
+          "period_s": 2.4,
+          "phase_rad": 1.570796
+        },
+        {
+          "joint": "dof_left_shoulder_yaw_02",
+          "amplitude_rad": 0.5,
+          "period_s": 2.4,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_left_elbow_02",
+          "amplitude_rad": 0.35,
+          "period_s": 2.4,
+          "phase_rad": 1.570796
+        },
+        {
+          "joint": "dof_left_wrist_00",
+          "amplitude_rad": 0.5,
+          "period_s": 2.4,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_shoulder_pitch_03",
+          "amplitude_rad": 0.32,
+          "period_s": 2.0,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_elbow_02",
+          "amplitude_rad": 0.3,
+          "period_s": 2.0,
+          "phase_rad": 1.570796
+        }
+      ]
+    },
+    "GO_FROM_LEFT": {
+      "meaning_zh_tw": "右臂上舉對主線維持停止；左臂平伸朝巷90，肘部 24 影格（1s）招手循環（beckon_cycle_frames=24）。",
+      "base": {
+        "dof_right_shoulder_pitch_03": -3.05,
+        "dof_right_shoulder_roll_03": 0.0,
+        "dof_right_shoulder_yaw_02": 0.0,
+        "dof_right_elbow_02": 0.55,
+        "dof_right_wrist_00": 0.0,
+        "dof_left_shoulder_pitch_03": 0.0,
+        "dof_left_shoulder_roll_03": 1.32,
+        "dof_left_shoulder_yaw_02": 0.0,
+        "dof_left_elbow_02": -0.85,
+        "dof_left_wrist_00": 0.0
+      },
+      "cycles": [
+        {
+          "joint": "dof_left_shoulder_roll_03",
+          "amplitude_rad": 0.3,
+          "period_frames": 40,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_left_elbow_02",
+          "amplitude_rad": 0.7,
+          "period_frames": 20,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_left_wrist_00",
+          "amplitude_rad": 0.55,
+          "period_frames": 20,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_shoulder_pitch_03",
+          "amplitude_rad": 0.32,
+          "period_s": 2.0,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_elbow_02",
+          "amplitude_rad": 0.3,
+          "period_s": 2.0,
+          "phase_rad": 1.570796
+        }
+      ]
+    },
+    "WALK_CYCLE": {
+      "meaning_zh_tw": "原地步行循環(進場走路用):微蹲抬腳、髖交替擺動、膝於擺動期屈曲、踝保持腳掌約略水平、手臂自然反向擺動。腳全程離地(基座 weld),前進位移由 viewer 以 root motion 提供。",
+      "base": {
+        "dof_left_hip_pitch_04": 0.25,
+        "dof_right_hip_pitch_04": -0.25,
+        "dof_left_knee_04": 0.5,
+        "dof_right_knee_04": -0.5,
+        "dof_left_ankle_02": -0.25,
+        "dof_right_ankle_02": 0.25,
+        "dof_right_shoulder_pitch_03": 0.0,
+        "dof_left_shoulder_pitch_03": 0.0,
+        "dof_right_elbow_02": 0.25,
+        "dof_left_elbow_02": -0.25
+      },
+      "cycles": [
+        {
+          "joint": "dof_left_hip_pitch_04",
+          "amplitude_rad": 0.4,
+          "period_frames": 32,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_hip_pitch_04",
+          "amplitude_rad": 0.4,
+          "period_frames": 32,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_left_knee_04",
+          "amplitude_rad": 0.35,
+          "period_frames": 32,
+          "phase_rad": 1.570796
+        },
+        {
+          "joint": "dof_right_knee_04",
+          "amplitude_rad": 0.35,
+          "period_frames": 32,
+          "phase_rad": 1.570796
+        },
+        {
+          "joint": "dof_left_ankle_02",
+          "amplitude_rad": 0.3,
+          "period_frames": 32,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_left_ankle_02",
+          "amplitude_rad": 0.28,
+          "period_frames": 32,
+          "phase_rad": -1.570796
+        },
+        {
+          "joint": "dof_right_ankle_02",
+          "amplitude_rad": 0.3,
+          "period_frames": 32,
+          "phase_rad": 0.0
+        },
+        {
+          "joint": "dof_right_ankle_02",
+          "amplitude_rad": 0.28,
+          "period_frames": 32,
+          "phase_rad": -1.570796
+        },
+        {
+          "joint": "dof_left_shoulder_pitch_03",
+          "amplitude_rad": 0.22,
+          "period_frames": 32,
+          "phase_rad": 3.141593
+        },
+        {
+          "joint": "dof_right_shoulder_pitch_03",
+          "amplitude_rad": 0.22,
+          "period_frames": 32,
+          "phase_rad": 3.141593
+        }
+      ]
+    }
+  },
+  "phases": [
+    {
+      "phase": "all_stop",
+      "gesture": "ALL_STOP",
+      "start_frame": 1,
+      "end_frame": 48
+    },
+    {
+      "phase": "roosevelt_flow",
+      "gesture": "STOP_FRONT_BACK_GO_LEFT_RIGHT",
+      "start_frame": 49,
+      "end_frame": 240
+    },
+    {
+      "phase": "clearance",
+      "gesture": "ALL_STOP",
+      "start_frame": 241,
+      "end_frame": 288
+    },
+    {
+      "phase": "pedestrian_crossing",
+      "gesture": "ALL_STOP_PED",
+      "start_frame": 289,
+      "end_frame": 899
+    },
+    {
+      "phase": "clearance",
+      "gesture": "ALL_STOP",
+      "start_frame": 900,
+      "end_frame": 947
+    },
+    {
+      "phase": "lane90_release",
+      "gesture": "GO_FROM_LEFT",
+      "start_frame": 948,
+      "end_frame": 1067
+    },
+    {
+      "phase": "walk_cycle",
+      "gesture": "WALK_CYCLE",
+      "start_frame": 1068,
+      "end_frame": 1143
+    }
+  ],
+  "validation": {
+    "joint_range_margin_fraction": 0.05,
+    "ref_vs_actual_rms_max_rad": 0.05,
+    "foot_geom_max_displacement_m": 0.001,
+    "self_collision_contacts_max": 0,
+    "foot_static_end_frame": 1067
+  }
+}

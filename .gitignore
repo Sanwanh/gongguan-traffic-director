@@ -1,0 +1,20 @@
+# 歷代備份(開發用)
+*.orig
+*.orig.glb
+*.v[0-9]
+*.glb.v[0-9]
+
+# 驗收產物
+mujoco/verify_shots/
+mujoco/*_report.json
+mujoco/__pycache__/
+mujoco/kbot_trajectory.npz
+
+# Blender 原始檔(102MB,超過 GitHub 單檔上限;留在主開發 repo)
+blender/
+
+# 展示影片(21MB,改用 GitHub Release 附件)
+video/*.mp4
+video/remotion/node_modules/
+
+.DS_Store

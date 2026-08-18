@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "rule_set_id": "tw-traffic-director-demo-2026-07-28",
+  "title_zh_tw": "公館數位孿生交通指揮規則",
+  "jurisdiction": "Taiwan",
+  "checked_on": "2026-08-04",
+  "scope": {
+    "mode": "closed_site_digital_twin_demo",
+    "public_road_authority": false,
+    "boundary_zh_tw": "封閉場域與數位孿生展示；KBot 並未依法取得公共道路交通指揮權限。",
+    "not_a_certification": true
+  },
+  "sources": [
+    {
+      "id": "road_traffic_act_4",
+      "title_zh_tw": "道路交通管理處罰條例第4條",
+      "url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=K0040012&flno=4",
+      "supports": [
+        "only_police_or_legally_authorized_personnel_have_public_road_priority"
+      ]
+    },
+    {
+      "id": "safety_rules_102",
+      "title_zh_tw": "道路交通安全規則第102條",
+      "url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=K0040013&flno=102",
+      "supports": [
+        "authorized_controller_over_lights",
+        "turning_yields_to_straight",
+        "blocked_intersection_no_entry"
+      ]
+    },
+    {
+      "id": "safety_rules_103",
+      "title_zh_tw": "道路交通安全規則第103條",
+      "url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=K0040013&flno=103",
+      "supports": [
+        "vehicle_must_yield_to_pedestrian"
+      ]
+    },
+    {
+      "id": "safety_rules_133",
+      "title_zh_tw": "道路交通安全規則第133條",
+      "url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=K0040013&flno=133",
+      "supports": [
+        "pedestrians_use_sidewalk"
+      ]
+    },
+    {
+      "id": "safety_rules_134",
+      "title_zh_tw": "道路交通安全規則第134條",
+      "url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=K0040013&flno=134",
+      "supports": [
+        "pedestrians_use_crosswalk_and_obey_direction"
+      ]
+    },
+    {
+      "id": "signal_rules_206",
+      "title_zh_tw": "道路交通標誌標線號誌設置規則第206條",
+      "url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=K0040014&flno=206",
+      "supports": [
+        "vehicle_signal_mask"
+      ]
+    },
+    {
+      "id": "signal_rules_207",
+      "title_zh_tw": "道路交通標誌標線號誌設置規則第207條",
+      "url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=K0040014&flno=207",
+      "supports": [
+        "pedestrian_walk_clear_dont_walk"
+      ]
+    },
+    {
+      "id": "driver_manual_gestures",
+      "title_zh_tw": "交通部公路局駕駛人手冊更新二版第31頁",
+      "url": "https://www.thb.gov.tw/News_eBook_Content.aspx?n=190&s=2467&sms=13078",
+      "supports": [
+        "official_training_gesture_meanings"
+      ]
+    }
+  ],
+  "precedence": [
+    "hard_safety_gate",
+    "authorized_controller",
+    "traffic_signal",
+    "uncontrolled_priority",
+    "lane_sign_and_marking_restrictions"
+  ],
+  "hard_safety_gates": [
+    "pedestrian_conflict",
+    "downstream_not_clear",
+    "intersection_clearance"
+  ],
+  "pedestrian_behavior": {
+    "sidewalk_approach_required": true,
+    "crossing_facility": "marked_crosswalk",
+    "enter_road_on": "steady_walk_signal",
+    "wait_at_curb_when_dont_walk": true,
+    "finish_crossing_after_entry": true,
+    "vehicle_yield_is_hard_gate": true
+  },
+  "simulation_constants": {
+    "seed": 20260728,
+    "fps": 24,
+    "speed_limit_kph": 40,
+    "controller_demo_speed_kph": 30,
+    "clearance_s": 2.0,
+    "pedestrian_walk_speed_mps": 1.45,
+    "crosswalk_curb_to_curb_m": 35.0,
+    "pedestrian_curb_to_sidewalk_m": 1.7,
+    "gesture_stability_s": 0.4,
+    "npc_rule_compliance": 1.0,
+    "violation_test_mode": false,
+    "vehicle_mix_project_assumption": {
+      "scooter": 0.55,
+      "car": 0.25,
+      "motorcycle": 0.1,
+      "bus": 0.05,
+      "bicycle": 0.05
+    }
+  },
+  "movements": {
+    "roosevelt_northwest": {
+      "type": "vehicle_straight",
+      "conflicts_with": [
+        "main_crosswalk"
+      ]
+    },
+    "roosevelt_southeast": {
+      "type": "vehicle_straight",
+      "conflicts_with": [
+        "main_crosswalk"
+      ]
+    },
+    "lane90_oneway": {
+      "type": "vehicle_straight",
+      "conflicts_with": [
+        "main_crosswalk"
+      ]
+    },
+    "main_crosswalk": {
+      "type": "pedestrian",
+      "conflicts_with": [
+        "roosevelt_northwest",
+        "roosevelt_southeast",
+        "lane90_oneway"
+      ]
+    }
+  },
+  "gestures": {
+    "ALL_STOP": {
+      "official_training_meaning_zh_tw": "手臂向上舉並轉頭注意四周，所有方向車輛停止。",
+      "allowed_movements": [],
+      "official_training_gesture": true,
+      "mujoco_pose_rad": {
+        "dof_right_shoulder_pitch_03": -3.141593,
+        "dof_right_shoulder_roll_03": 0.0,
+        "dof_right_shoulder_yaw_02": 0.0,
+        "dof_right_elbow_02": 0.0,
+        "dof_left_shoulder_pitch_03": 0.0,
+        "dof_left_shoulder_roll_03": 0.0,
+        "dof_left_shoulder_yaw_02": 0.0,
+        "dof_left_elbow_02": -1.570796
+      }
+    },
+    "STOP_FRONT_BACK_GO_LEFT_RIGHT": {
+      "official_training_meaning_zh_tw": "兩臂左右平伸；前後來車停止，左右來車通行。",
+      "allowed_movements": [
+        "roosevelt_northwest",
+        "roosevelt_southeast"
+      ],
+      "official_training_gesture": true,
+      "mujoco_pose_rad": {
+        "dof_right_shoulder_pitch_03": 0.0,
+        "dof_right_shoulder_roll_03": -1.2,
+        "dof_right_shoulder_yaw_02": 0.0,
+        "dof_right_elbow_02": 0.0,
+        "dof_left_shoulder_pitch_03": 0.0,
+        "dof_left_shoulder_roll_03": 1.2,
+        "dof_left_shoulder_yaw_02": 0.0,
+        "dof_left_elbow_02": 0.0
+      }
+    },
+    "GO_FROM_LEFT": {
+      "official_training_meaning_zh_tw": "一手平伸，另一手向內招車；左方來車通行。",
+      "allowed_movements": [
+        "lane90_oneway"
+      ],
+      "official_training_gesture": true,
+      "motion_type": "beckon_loop",
+      "beckon_cycle_frames": 24,
+      "mujoco_motion_delta_rad": {
+        "dof_right_elbow_02": 0.65
+      },
+      "mujoco_pose_rad": {
+        "dof_right_shoulder_pitch_03": 0.0,
+        "dof_right_shoulder_roll_03": -0.3,
+        "dof_right_shoulder_yaw_02": 0.0,
+        "dof_right_elbow_02": 1.570796,
+        "dof_left_shoulder_pitch_03": 0.0,
+        "dof_left_shoulder_roll_03": 1.2,
+        "dof_left_shoulder_yaw_02": 0.0,
+        "dof_left_elbow_02": 0.0
+      }
+    }
+  },
+  "phases": {
+    "all_stop": {
+      "label_zh_tw": "全向停止",
+      "gesture": "ALL_STOP",
+      "allowed_movements": [],
+      "pedestrian_walk": false,
+      "controller_yaw_deg": 45.0
+    },
+    "roosevelt_flow": {
+      "label_zh_tw": "羅斯福路放行",
+      "gesture": "STOP_FRONT_BACK_GO_LEFT_RIGHT",
+      "allowed_movements": [
+        "roosevelt_northwest",
+        "roosevelt_southeast"
+      ],
+      "pedestrian_walk": false,
+      "controller_yaw_deg": 45.0
+    },
+    "clearance": {
+      "label_zh_tw": "路口清空",
+      "gesture": "ALL_STOP",
+      "allowed_movements": [],
+      "pedestrian_walk": false,
+      "controller_yaw_deg": 45.0
+    },
+    "pedestrian_crossing": {
+      "label_zh_tw": "行人穿越",
+      "gesture": "ALL_STOP",
+      "allowed_movements": [],
+      "pedestrian_walk": true,
+      "controller_yaw_deg": 45.0,
+      "gesture_note_zh_tw": "官方資料未定義 KBot 行人招行手勢；此相位以全向停車手勢搭配 WALK UI。"
+    },
+    "lane90_release": {
+      "label_zh_tw": "巷90單向放行",
+      "gesture": "GO_FROM_LEFT",
+      "allowed_movements": [
+        "lane90_oneway"
+      ],
+      "pedestrian_walk": false,
+      "controller_yaw_deg": 135.0
+    }
+  },
+  "demo_timeline": [
+    {
+      "phase": "all_stop",
+      "start_frame": 1,
+      "end_frame": 48
+    },
+    {
+      "phase": "roosevelt_flow",
+      "start_frame": 49,
+      "end_frame": 240
+    },
+    {
+      "phase": "clearance",
+      "start_frame": 241,
+      "end_frame": 288
+    },
+    {
+      "phase": "pedestrian_crossing",
+      "start_frame": 289,
+      "end_frame": 899
+    },
+    {
+      "phase": "clearance",
+      "start_frame": 900,
+      "end_frame": 947
+    },
+    {
+      "phase": "lane90_release",
+      "start_frame": 948,
+      "end_frame": 1067
+    }
+  ]
+}

@@ -1,0 +1,415 @@
+{
+  "A1_defaults_untouched": {
+    "ok": true,
+    "detail": {
+      "posts": {
+        "stand": {
+          "id": "stand",
+          "label": "行穿線旁人行道",
+          "x": 15,
+          "y": 0.24,
+          "z": 17.15
+        },
+        "crosswalk": {
+          "id": "crosswalk",
+          "label": "行穿線中央",
+          "x": 15,
+          "y": 0.02,
+          "z": 8.33
+        },
+        "lane90": {
+          "id": "lane90",
+          "label": "巷90 巷口",
+          "x": -0.5,
+          "y": 0.24,
+          "z": 17
+        }
+      },
+      "defaults": {
+        "stand": {
+          "id": "stand",
+          "label": "行穿線旁人行道",
+          "x": 15,
+          "y": 0.24,
+          "z": 17.15
+        },
+        "crosswalk": {
+          "id": "crosswalk",
+          "label": "行穿線中央",
+          "x": 15,
+          "y": 0.02,
+          "z": 8.33
+        },
+        "lane90": {
+          "id": "lane90",
+          "label": "巷90 巷口",
+          "x": -0.5,
+          "y": 0.24,
+          "z": 17
+        }
+      }
+    }
+  },
+  "A2_preview_off_by_default": {
+    "ok": true,
+    "detail": false
+  },
+  "A3_selected_stand": {
+    "ok": true,
+    "detail": "stand"
+  },
+  "A4_group_collapsed_by_default": {
+    "ok": true,
+    "detail": false
+  },
+  "A5_no_preview_lock_pill": {
+    "ok": true,
+    "detail": "安全閘門正常"
+  },
+  "B1_preview_switch_on": {
+    "ok": true,
+    "detail": true
+  },
+  "B2_select_crosswalk": {
+    "ok": true,
+    "detail": "crosswalk"
+  },
+  "B3_segmented_follows_select": {
+    "ok": true,
+    "detail": "crosswalk"
+  },
+  "sweep": [
+    {
+      "t": 8.33,
+      "probe": [
+        -17.84575217110615,
+        1.5018152361209332,
+        -4.207126191190453
+      ],
+      "holder": [
+        15,
+        0.02,
+        8.33
+      ],
+      "verdict": "在車道上 — 實跑會鎖住羅斯福路放行(HOLD) 在行穿線畫線帶(straight) 不擋行人穿越走廊 最近避車處 行穿線頭人行道 8.8 m",
+      "sliderOut": "8.33 m"
+    },
+    {
+      "t": 12,
+      "probe": [
+        -20.518537980288958,
+        1.4947656814315322,
+        -1.7823294392837357
+      ],
+      "holder": [
+        15,
+        0.02,
+        12
+      ],
+      "verdict": "在車道上 — 實跑會鎖住羅斯福路放行(HOLD) 在行穿線畫線帶(straight) 不擋行人穿越走廊 最近避車處 行穿線頭人行道 5.1 m",
+      "sliderOut": "12.00 m"
+    },
+    {
+      "t": 1.28,
+      "probe": [
+        -12.716110272155976,
+        1.482008149690522,
+        -9.184634232638999
+      ],
+      "holder": [
+        15,
+        0.02,
+        1.28
+      ],
+      "verdict": "在車道上 — 實跑會鎖住羅斯福路放行(HOLD) 落在 BRT 中央分向島(行穿線外框內、但沒有畫線) 不擋行人穿越走廊 最近避車處 行穿線頭人行道 15.9 m",
+      "sliderOut": "1.28 m"
+    },
+    {
+      "t": 17.5,
+      "probe": [
+        -24.519510122099714,
+        1.4859750447070081,
+        1.9464741372846692
+      ],
+      "holder": [
+        15,
+        0.02,
+        17.5
+      ],
+      "verdict": "安全區:水源市場側人行道 不在行穿線畫線帶 不擋行人穿越走廊 最近避車處 行穿線頭人行道 0.4 m",
+      "sliderOut": "17.50 m"
+    },
+    {
+      "t": 8.33,
+      "probe": [
+        -17.848099158750898,
+        1.5019671964287316,
+        -4.289110814641959
+      ],
+      "holder": [
+        15,
+        0.02,
+        8.33
+      ],
+      "verdict": "在車道上 — 實跑會鎖住羅斯福路放行(HOLD) 在行穿線畫線帶(straight) 不擋行人穿越走廊 最近避車處 行穿線頭人行道 8.8 m",
+      "sliderOut": "8.33 m"
+    }
+  ],
+  "B4_probe_tracks_slider": {
+    "ok": true,
+    "detail": [
+      {
+        "t": 8.33,
+        "holderZ": 8.33,
+        "probe": [
+          -17.846,
+          1.502,
+          -4.207
+        ]
+      },
+      {
+        "t": 12,
+        "holderZ": 12,
+        "probe": [
+          -20.519,
+          1.495,
+          -1.782
+        ]
+      },
+      {
+        "t": 1.28,
+        "holderZ": 1.28,
+        "probe": [
+          -12.716,
+          1.482,
+          -9.185
+        ]
+      },
+      {
+        "t": 17.5,
+        "holderZ": 17.5,
+        "probe": [
+          -24.52,
+          1.486,
+          1.946
+        ]
+      },
+      {
+        "t": 8.33,
+        "holderZ": 8.33,
+        "probe": [
+          -17.848,
+          1.502,
+          -4.289
+        ]
+      }
+    ]
+  },
+  "B5_slider_output_text": {
+    "ok": true,
+    "detail": [
+      "8.33 m",
+      "12.00 m",
+      "1.28 m",
+      "17.50 m",
+      "8.33 m"
+    ]
+  },
+  "C1_roadway_verdict": {
+    "ok": true,
+    "detail": "在車道上 — 實跑會鎖住羅斯福路放行(HOLD) 在行穿線畫線帶(straight) 不擋行人穿越走廊 最近避車處 行穿線頭人行道 5.1 m"
+  },
+  "C2_brt_gap_verdict": {
+    "ok": true,
+    "detail": "在車道上 — 實跑會鎖住羅斯福路放行(HOLD) 落在 BRT 中央分向島(行穿線外框內、但沒有畫線) 不擋行人穿越走廊 最近避車處 行穿線頭人行道 15.9 m"
+  },
+  "C3_safe_zone_verdict": {
+    "ok": true,
+    "detail": "安全區:水源市場側人行道 不在行穿線畫線帶 不擋行人穿越走廊 最近避車處 行穿線頭人行道 0.4 m"
+  },
+  "C4_preview_lock_pill": {
+    "ok": true,
+    "detail": "路口清空中 行穿線尚未淨空 0.8 m KBot 於車道護送中 崗位預覽中:KBot 暫離勤務"
+  },
+  "verdictHook": {
+    "zone": null,
+    "zoneLabel": null,
+    "onRoadway": true,
+    "bandId": "straight",
+    "inStraightGap": false,
+    "blocksPedestrians": false,
+    "refugeLabel": "行穿線頭人行道",
+    "refugeDistance": 8.819999999999999
+  },
+  "C5_lane90_editable": {
+    "ok": true,
+    "detail": {
+      "lane90": {
+        "id": "lane90",
+        "label": "巷90 巷口",
+        "x": -3.5,
+        "y": 0.3,
+        "z": 17
+      },
+      "holderLane90": [
+        -3.5,
+        0.3,
+        17
+      ]
+    }
+  },
+  "C6_stand_editable": {
+    "ok": true,
+    "detail": {
+      "id": "stand",
+      "label": "行穿線旁人行道",
+      "x": 11,
+      "y": 0.24,
+      "z": 17.15
+    }
+  },
+  "exportSnippet": "// 由 viewer 的「機器人崗位微調」匯出(§18)。貼回 traffic_director.js\n// 的 KBOT_POSTS_DEFAULT,並同步下列鏡像,否則 node 測試會綠著騙人:\n//   mujoco/test_v4_direction_and_turns.mjs 的 POSTS\n//   SPEC_VIEWER_V2.md 的崗位座標表\n// 改完務必跑 python3 mujoco/stamp_versions.py。\nconst KBOT_POSTS_DEFAULT = Object.freeze({\n  stand: Object.freeze({\n    id: \"stand\", label: \"行穿線旁人行道\", x: 11.00, y: 0.24, z: 17.15,\n  }),\n  crosswalk: Object.freeze({\n    id: \"crosswalk\", label: \"行穿線中央\", x: 15.00, y: 0.02, z: 8.33,\n  }),\n  lane90: Object.freeze({\n    id: \"lane90\", label: \"巷90 巷口\", x: -3.50, y: 0.30, z: 17.00,\n  }),\n});\n",
+  "D1_copy_button_produces_code": {
+    "ok": true,
+    "detail": {
+      "copyNote": "無法寫入剪貼簿,已展開程式碼片段(已全選,請按 ⌘C)。",
+      "exportHidden": false,
+      "len": 565
+    }
+  },
+  "copyNote": "無法寫入剪貼簿,已展開程式碼片段(已全選,請按 ⌘C)。",
+  "exportHidden": false,
+  "E1_reset_restores_defaults": {
+    "ok": true,
+    "detail": {
+      "stand": {
+        "id": "stand",
+        "label": "行穿線旁人行道",
+        "x": 15,
+        "y": 0.24,
+        "z": 17.15
+      },
+      "crosswalk": {
+        "id": "crosswalk",
+        "label": "行穿線中央",
+        "x": 15,
+        "y": 0.02,
+        "z": 8.33
+      },
+      "lane90": {
+        "id": "lane90",
+        "label": "巷90 巷口",
+        "x": -0.5,
+        "y": 0.24,
+        "z": 17
+      }
+    }
+  },
+  "E2_reset_moves_robot_back": {
+    "ok": true,
+    "detail": [
+      15,
+      0.24,
+      17.15
+    ]
+  },
+  "F1_preview_switch_off": {
+    "ok": true,
+    "detail": false
+  },
+  "F2_duty_state_machine_resumes": {
+    "ok": true,
+    "detail": "duty"
+  },
+  "F2b_walks_to_new_post": {
+    "ok": true,
+    "detail": [
+      14.937139999967824,
+      0.25495063945971186,
+      17.15
+    ]
+  },
+  "F3_preview_lock_cleared": {
+    "ok": true,
+    "detail": "路口清空中 行穿線尚未淨空 0.8 m"
+  },
+  "hooks": {
+    "__trafficDirectorDebug": "object",
+    "__kbotProbeWorldPos": "function",
+    "__vehicleStates": "function",
+    "__lane90States": "function",
+    "__busStates": "function",
+    "__signalStates": "function",
+    "__pedestrianStates": "function",
+    "__setCamera": "function",
+    "__setNodeVisibility": "function",
+    "__renderStats": "function",
+    "__kbotArmOffsets": "function",
+    "__kbotHandOffsets": "function",
+    "__kbotPosts": "function",
+    "__setKbotPost": "function",
+    "__selectKbotPost": "function",
+    "__setKbotPostPreview": "function",
+    "__kbotPostExportCode": "function",
+    "__resetKbotPosts": "function"
+  },
+  "G1_hooks_present": {
+    "ok": true,
+    "detail": {
+      "__trafficDirectorDebug": "object",
+      "__kbotProbeWorldPos": "function",
+      "__vehicleStates": "function",
+      "__lane90States": "function",
+      "__busStates": "function",
+      "__signalStates": "function",
+      "__pedestrianStates": "function",
+      "__setCamera": "function",
+      "__setNodeVisibility": "function",
+      "__renderStats": "function",
+      "__kbotArmOffsets": "function",
+      "__kbotHandOffsets": "function",
+      "__kbotPosts": "function",
+      "__setKbotPost": "function",
+      "__selectKbotPost": "function",
+      "__setKbotPostPreview": "function",
+      "__kbotPostExportCode": "function",
+      "__resetKbotPosts": "function"
+    }
+  },
+  "G2_dom_ids_present": {
+    "ok": true,
+    "detail": {
+      "#autoMode": true,
+      "#downstreamBlocked": true,
+      "#motionEffects": true,
+      "#highPerformance": true,
+      "#trafficDensity": true,
+      "#hookTurn": true,
+      "#recordingMode": true,
+      "#pacingPreset": true,
+      "#reseedButton": true,
+      "#safetyLocks": true,
+      "#kbotPostLabel": true,
+      "#durationRoosevelt": true,
+      "#durationPedestrian": true,
+      "#durationLane90": true
+    }
+  },
+  "G3_cameras_present": {
+    "ok": true,
+    "detail": [
+      "overview",
+      "street",
+      "robot",
+      "busstop",
+      "crosswalk",
+      "hook"
+    ]
+  },
+  "H1_no_console_errors": {
+    "ok": true,
+    "detail": []
+  },
+  "failures": [],
+  "consoleErrors": []
+}

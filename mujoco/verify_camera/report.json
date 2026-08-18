@@ -1,0 +1,652 @@
+{
+  "results": [
+    {
+      "name": "A1_hooks_present",
+      "ok": true,
+      "detail": {
+        "cameraState": "function",
+        "pickAt": "function",
+        "focusObject": "function",
+        "setCameraMode": "function",
+        "setCamera": "function",
+        "cams": [
+          "overview",
+          "street",
+          "robot",
+          "busstop",
+          "crosswalk",
+          "hook"
+        ]
+      }
+    },
+    {
+      "name": "A2_data_camera_exactly_6",
+      "ok": true,
+      "detail": [
+        "overview",
+        "street",
+        "robot",
+        "busstop",
+        "crosswalk",
+        "hook"
+      ]
+    },
+    {
+      "name": "A3_blockers_built",
+      "ok": true,
+      "detail": {
+        "blockerCount": 231
+      }
+    },
+    {
+      "name": "B_isometric_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "isometric",
+        "total": 112.58,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "orbit",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_isometric_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "B_isometric_no_building_clip",
+      "ok": true,
+      "detail": "isometric"
+    },
+    {
+      "name": "B_street_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "street",
+        "total": 65.86,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "street",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_street_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "street"
+      }
+    },
+    {
+      "name": "B_street_no_building_clip",
+      "ok": true,
+      "detail": "street"
+    },
+    {
+      "name": "B_robot_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "robot",
+        "total": 65.5,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "follow",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_robot_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "follow"
+      }
+    },
+    {
+      "name": "B_robot_no_building_clip",
+      "ok": true,
+      "detail": "robot"
+    },
+    {
+      "name": "B_intersection_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "intersection",
+        "total": 57.21,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "orbit",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_intersection_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "B_intersection_no_building_clip",
+      "ok": true,
+      "detail": "intersection"
+    },
+    {
+      "name": "B_busstop_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "busstop",
+        "total": 76.66,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "orbit",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_busstop_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "B_busstop_no_building_clip",
+      "ok": true,
+      "detail": "busstop"
+    },
+    {
+      "name": "B_crosswalk_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "crosswalk",
+        "total": 57.8,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "orbit",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_crosswalk_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "B_crosswalk_no_building_clip",
+      "ok": true,
+      "detail": "crosswalk"
+    },
+    {
+      "name": "B_hook_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "hook",
+        "total": 46.84,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "orbit",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_hook_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "B_hook_no_building_clip",
+      "ok": true,
+      "detail": "hook"
+    },
+    {
+      "name": "B_topdown_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "topdown",
+        "total": 94.23,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "top",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_topdown_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "top"
+      }
+    },
+    {
+      "name": "B_topdown_no_building_clip",
+      "ok": true,
+      "detail": "topdown"
+    },
+    {
+      "name": "B_fixedpost_gradual",
+      "ok": true,
+      "detail": {
+        "preset": "fixedpost",
+        "total": 60.97,
+        "midFrames": 8,
+        "distinctSamples": 8,
+        "endMode": "fixed",
+        "finalTransitioning": false
+      }
+    },
+    {
+      "name": "B_fixedpost_settled",
+      "ok": true,
+      "detail": {
+        "transitioning": false,
+        "mode": "fixed"
+      }
+    },
+    {
+      "name": "B_fixedpost_no_building_clip",
+      "ok": true,
+      "detail": "fixedpost"
+    },
+    {
+      "name": "C_overview_click_works",
+      "ok": true,
+      "detail": {
+        "preset": "overview",
+        "active": true,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "C_street_click_works",
+      "ok": true,
+      "detail": {
+        "preset": "street",
+        "active": true,
+        "mode": "street"
+      }
+    },
+    {
+      "name": "C_robot_click_works",
+      "ok": true,
+      "detail": {
+        "preset": "robot",
+        "active": true,
+        "mode": "follow"
+      }
+    },
+    {
+      "name": "C_crosswalk_click_works",
+      "ok": true,
+      "detail": {
+        "preset": "crosswalk",
+        "active": true,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "C_hook_click_works",
+      "ok": true,
+      "detail": {
+        "preset": "hook",
+        "active": true,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "C_busstop_click_works",
+      "ok": true,
+      "detail": {
+        "preset": "busstop",
+        "active": true,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "D1_setCamera_sync",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "position": [
+          -8.059,
+          5,
+          -6.377
+        ],
+        "target": [
+          -1.2,
+          1,
+          0.9
+        ],
+        "mode": "orbit",
+        "transitioning": false
+      }
+    },
+    {
+      "name": "D2_setCamera_no_follow_drift",
+      "ok": true,
+      "detail": {
+        "drift": 0,
+        "mode": "orbit"
+      }
+    },
+    {
+      "name": "E1_pick_kbot",
+      "ok": true,
+      "detail": {
+        "hits": 26,
+        "kbot": 6,
+        "sample": [
+          "crosswalk",
+          "kbot"
+        ]
+      }
+    },
+    {
+      "name": "E2_pick_kinds",
+      "ok": true,
+      "detail": {
+        "busstop": 28,
+        "vehicle": 13,
+        "crosswalk": 8,
+        "intersection": 136,
+        "pedestrian": 1,
+        "hook": 6
+      }
+    },
+    {
+      "name": "E3_static_focus_ids",
+      "ok": true,
+      "detail": {
+        "intersection": true,
+        "busstopSe": true,
+        "hook": true
+      }
+    },
+    {
+      "name": "E4_signal_focus",
+      "ok": true,
+      "detail": {
+        "signalId": "main_00"
+      }
+    },
+    {
+      "name": "F1_focus_kbot_centred",
+      "ok": true,
+      "detail": {
+        "ndc": [
+          0,
+          0
+        ],
+        "distance": 5
+      }
+    },
+    {
+      "name": "F2_focus_kbot_distance",
+      "ok": true,
+      "detail": {
+        "ndc": [
+          0,
+          0
+        ],
+        "distance": 5
+      }
+    },
+    {
+      "name": "F3_focus_is_animated",
+      "ok": true,
+      "detail": {
+        "focusAnimated": true
+      }
+    },
+    {
+      "name": "G1_zoom_no_clip",
+      "ok": true,
+      "detail": 5
+    },
+    {
+      "name": "G2_zoom_above_ground",
+      "ok": true,
+      "detail": [
+        -3.4452,
+        1.7756,
+        -5.4448
+      ]
+    },
+    {
+      "name": "G3_zoom_min_distance",
+      "ok": true,
+      "detail": 5
+    },
+    {
+      "name": "H1_pan_target_bounded",
+      "ok": true,
+      "detail": [
+        -1.8078,
+        14,
+        3.7218
+      ]
+    },
+    {
+      "name": "I1_follow_mode_entered",
+      "ok": true,
+      "detail": "follow"
+    },
+    {
+      "name": "I2_follow_exits_on_orbit",
+      "ok": true,
+      "detail": {
+        "mode": "orbit",
+        "notice": "已退出跟隨:相機改為 Orbit 自由視角"
+      }
+    },
+    {
+      "name": "I3_follow_exit_notice",
+      "ok": true,
+      "detail": "已退出跟隨:相機改為 Orbit 自由視角"
+    },
+    {
+      "name": "J1_follow_distance_stable",
+      "ok": true,
+      "detail": {
+        "d0": 9.3734,
+        "d1": 9.3508
+      }
+    },
+    {
+      "name": "K1_all_modes",
+      "ok": true,
+      "detail": {
+        "orbit": {
+          "mode": "orbit",
+          "polar": 55.447,
+          "inside": false
+        },
+        "follow": {
+          "mode": "follow",
+          "polar": 76.393,
+          "inside": false
+        },
+        "fixed": {
+          "mode": "fixed",
+          "polar": 72.584,
+          "inside": false
+        },
+        "top": {
+          "mode": "top",
+          "polar": 0.276,
+          "inside": false
+        },
+        "street": {
+          "mode": "street",
+          "polar": 83.39,
+          "inside": false
+        }
+      }
+    },
+    {
+      "name": "K2_top_is_topdown",
+      "ok": true,
+      "detail": {
+        "mode": "top",
+        "polar": 0.276,
+        "inside": false
+      }
+    },
+    {
+      "name": "K3_street_is_low",
+      "ok": true,
+      "detail": {
+        "mode": "street",
+        "polar": 83.39,
+        "inside": false
+      }
+    },
+    {
+      "name": "K4_ortho_toggle",
+      "ok": true,
+      "detail": {
+        "ortho": "orthographic",
+        "back": "perspective"
+      }
+    },
+    {
+      "name": "K5_ortho_roundtrip_framing",
+      "ok": true,
+      "detail": {
+        "before": 60.1233,
+        "after": 60.1233
+      }
+    },
+    {
+      "name": "L1_recording_hides_new_chrome",
+      "ok": true,
+      "detail": {
+        "tools": false,
+        "hint": false,
+        "toolbar": false
+      }
+    },
+    {
+      "name": "Z_no_console_errors",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "transitionReport": [
+    {
+      "preset": "isometric",
+      "total": 112.58,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "orbit",
+      "finalTransitioning": false
+    },
+    {
+      "preset": "street",
+      "total": 65.86,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "street",
+      "finalTransitioning": false
+    },
+    {
+      "preset": "robot",
+      "total": 65.5,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "follow",
+      "finalTransitioning": false
+    },
+    {
+      "preset": "intersection",
+      "total": 57.21,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "orbit",
+      "finalTransitioning": false
+    },
+    {
+      "preset": "busstop",
+      "total": 76.66,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "orbit",
+      "finalTransitioning": false
+    },
+    {
+      "preset": "crosswalk",
+      "total": 57.8,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "orbit",
+      "finalTransitioning": false
+    },
+    {
+      "preset": "hook",
+      "total": 46.84,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "orbit",
+      "finalTransitioning": false
+    },
+    {
+      "preset": "topdown",
+      "total": 94.23,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "top",
+      "finalTransitioning": false
+    },
+    {
+      "preset": "fixedpost",
+      "total": 60.97,
+      "midFrames": 8,
+      "distinctSamples": 8,
+      "endMode": "fixed",
+      "finalTransitioning": false
+    }
+  ],
+  "modeReport": {
+    "orbit": {
+      "mode": "orbit",
+      "polar": 55.447,
+      "inside": false
+    },
+    "follow": {
+      "mode": "follow",
+      "polar": 76.393,
+      "inside": false
+    },
+    "fixed": {
+      "mode": "fixed",
+      "polar": 72.584,
+      "inside": false
+    },
+    "top": {
+      "mode": "top",
+      "polar": 0.276,
+      "inside": false
+    },
+    "street": {
+      "mode": "street",
+      "polar": 83.39,
+      "inside": false
+    }
+  },
+  "consoleErrors": []
+}
