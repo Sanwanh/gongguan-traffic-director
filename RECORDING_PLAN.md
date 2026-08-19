@@ -18,7 +18,7 @@ node mujoco/verify_recording_shots.mjs
 ```bash
 # 1. 確認 server 用的是 serve.py(不是裸 http.server;快取標頭不同)
 pkill -f "serve.py --port 8124"
-cd /Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package
+cd <repo-root>
 python3 serve.py --port 8124 --directory . &
 
 # 2. 改過 GLB / JS 之後一定要重新蓋版本戳,否則瀏覽器吃舊快取

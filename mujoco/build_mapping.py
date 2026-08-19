@@ -39,12 +39,13 @@ from datetime import datetime, timezone
 
 import numpy as np
 import mujoco
+from pathlib import Path
 
 # ---------------------------------------------------------------- constants
-PKG = "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package"
+PKG = str(Path(__file__).resolve().parent.parent)
 GLB_MAIN = os.path.join(PKG, "viewer/models/kbot_traffic_director.glb")
 GLB_ORIG = os.path.join(PKG, "viewer/models/kbot_traffic_director.orig.glb")
-MJCF = "/Users/san/ksim/examples/kbot/robot/kbot-headless/robot.mjcf"
+MJCF = os.environ.get("KSIM_ROOT", str(Path.home() / "ksim")) + "/examples/kbot/robot/kbot-headless/robot.mjcf"
 OUT_JSON = os.path.join(PKG, "mujoco/mapping.json")
 FAIL_JSON = os.path.join(PKG, "mujoco/mapping_failure_report.json")
 

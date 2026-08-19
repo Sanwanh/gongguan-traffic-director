@@ -7,7 +7,7 @@
 //
 // 前置(before/extend 兩棵樹是用 hardlink copy 建的,不動 live tree):
 //   SCR=/private/tmp/claude-501/-Users-san/a6cbb76f-4337-4070-b123-322f5ce15a49/scratchpad
-//   SRC=/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package
+//   SRC=<repo-root>
 //   # 1) 改版前的 .v9 樹
 //   rm -rf $SCR/before_v9 && cp -al $SRC $SCR/before_v9
 //   for f in traffic_director.js traffic_director.html traffic_director.css \

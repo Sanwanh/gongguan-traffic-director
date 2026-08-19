@@ -24,7 +24,7 @@
       "panelWidth": 0,
       "canvasWidth": 1920,
       "phase": "roosevelt_flow",
-      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot1_overview.png",
+      "image": "<repo-root>/mujoco/verify_shots/shot1_overview.png",
       "bytes": 323836
     },
     {
@@ -38,8 +38,8 @@
         "main": 28,
         "still": 0
       },
-      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot2_roosevelt.png",
-      "amberImage": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot2_roosevelt_amber.png"
+      "image": "<repo-root>/mujoco/verify_shots/shot2_roosevelt.png",
+      "amberImage": "<repo-root>/mujoco/verify_shots/shot2_roosevelt_amber.png"
     },
     {
       "shot": "shot3_pedestrian",
@@ -58,7 +58,7 @@
         "sidewalk_departure": 6,
         "crossing": 1
       },
-      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot3_pedestrian.png"
+      "image": "<repo-root>/mujoco/verify_shots/shot3_pedestrian.png"
     },
     {
       "shot": "shot4_retreat",
@@ -72,7 +72,7 @@
         17.15
       ],
       "locksAfter": "安全閘門正常",
-      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot4_retreat.png"
+      "image": "<repo-root>/mujoco/verify_shots/shot4_retreat.png"
     },
     {
       "shot": "shot5_hook",
@@ -163,7 +163,7 @@
         ],
         "shown": 1
       },
-      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot5_hook.png"
+      "image": "<repo-root>/mujoco/verify_shots/shot5_hook.png"
     },
     {
       "shot": "shot6_hook_release",
@@ -175,7 +175,7 @@
         "shown": 0,
         "merged": 0
       },
-      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot6_hook_release.png"
+      "image": "<repo-root>/mujoco/verify_shots/shot6_hook_release.png"
     },
     {
       "shot": "shot7_busstop",
@@ -203,7 +203,7 @@
       },
       "boardingsBefore": 0,
       "boardingsAfter": 1,
-      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot7_busstop.png"
+      "image": "<repo-root>/mujoco/verify_shots/shot7_busstop.png"
     },
     {
       "shot": "shot8_safety",
@@ -218,8 +218,8 @@
       },
       "releasedPhase": "roosevelt_flow",
       "allStopImmediate": true,
-      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot8_safety.png",
-      "afterImage": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot8_safety_released.png"
+      "image": "<repo-root>/mujoco/verify_shots/shot8_safety.png",
+      "afterImage": "<repo-root>/mujoco/verify_shots/shot8_safety_released.png"
     }
   ],
   "final": {

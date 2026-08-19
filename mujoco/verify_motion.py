@@ -36,8 +36,9 @@ import sys
 from datetime import datetime, timezone
 
 import numpy as np
+from pathlib import Path
 
-PKG = "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package"
+PKG = str(Path(__file__).resolve().parent.parent)
 GLB_MAIN = os.path.join(PKG, "viewer/models/kbot_traffic_director.glb")
 GLB_ORIG = os.path.join(PKG, "viewer/models/kbot_traffic_director.orig.glb")
 NPZ = os.path.join(PKG, "mujoco/kbot_trajectory.npz")

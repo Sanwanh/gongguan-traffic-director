@@ -1,7 +1,7 @@
 {
   "ok": true,
   "spec": "mujoco/gesture_spec.json",
-  "mjcf": "/Users/san/ksim/examples/kbot/robot/kbot-headless/robot.mjcf",
+  "mjcf": "<ksim-clone>/examples/kbot/robot/kbot-headless/robot.mjcf",
   "mujoco_version": "3.11.0",
   "frames": 1143,
   "fps": 24,

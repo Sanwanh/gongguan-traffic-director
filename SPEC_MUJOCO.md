@@ -13,7 +13,7 @@
   pedestrian_crossing 289–899 / clearance 900–947 / lane90_release 948–1067。
   fps=24。手勢:ALL_STOP、STOP_FRONT_BACK_GO_LEFT_RIGHT、GO_FROM_LEFT。
 - MuJoCo 3.11.0 可用(`uv run --with mujoco`)。KBot MJCF:
-  `/Users/san/ksim/examples/kbot/robot/kbot-headless/robot.mjcf`
+  `<ksim-clone>/examples/kbot/robot/kbot-headless/robot.mjcf`
   (nq=27,20 個 hinge:雙腿各 5、雙臂各 5 = 肩 pitch/roll/yaw+肘+腕;
   32 geoms,mesh 名稱與 GLB 節點對應,如
   `KC_C_401R_R_UpForearmDrive.stl` ↔

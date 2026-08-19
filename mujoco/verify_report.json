@@ -1,7 +1,7 @@
 {
  "generated_by": "verify_motion.py",
  "generated_at": "2026-08-16T16:55:39.391947+00:00",
- "glb": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/viewer/models/kbot_traffic_director.glb",
+ "glb": "<repo-root>/viewer/models/kbot_traffic_director.glb",
  "pass": true,
  "failures": [],
  "gates": {

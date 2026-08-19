@@ -1,8 +1,8 @@
 {
  "generated_by": "build_mapping.py",
  "generated_at": "2026-08-05T10:12:14.461539+00:00",
- "glb": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/viewer/models/kbot_traffic_director.glb",
- "mjcf": "/Users/san/ksim/examples/kbot/robot/kbot-headless/robot.mjcf",
+ "glb": "<repo-root>/viewer/models/kbot_traffic_director.glb",
+ "mjcf": "<ksim-clone>/examples/kbot/robot/kbot-headless/robot.mjcf",
  "convention": {
   "formula": "T_glb_node(f) = C @ T_mj_geom(f) @ D ; all 4x4 row-major",
   "glb_frame": "node-local TRS relative to TrafficDirector_KBot_Root (Y-up)",

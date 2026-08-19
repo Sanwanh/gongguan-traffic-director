@@ -23,7 +23,7 @@ import mujoco
 PKG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MUJOCO_DIR = os.path.join(PKG, "mujoco")
 SPEC_PATH = os.path.join(MUJOCO_DIR, "gesture_spec.json")
-MJCF_PATH = "/Users/san/ksim/examples/kbot/robot/kbot-headless/robot.mjcf"
+MJCF_PATH = os.environ.get("KSIM_ROOT", str(Path.home() / "ksim")) + "/examples/kbot/robot/kbot-headless/robot.mjcf"
 MJCF_DIR = os.path.dirname(MJCF_PATH)
 NPZ_PATH = os.path.join(MUJOCO_DIR, "kbot_trajectory.npz")
 REPORT_PATH = os.path.join(MUJOCO_DIR, "sim_report.json")
