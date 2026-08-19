@@ -1,0 +1,192 @@
+{
+  "ok": true,
+  "spec": "mujoco/gesture_spec.json",
+  "mjcf": "/Users/san/ksim/examples/kbot/robot/kbot-headless/robot.mjcf",
+  "mujoco_version": "3.11.0",
+  "frames": 1143,
+  "fps": 24,
+  "timestep_s": 0.0020833333333333333,
+  "substeps_per_frame": 20,
+  "settle_seconds": 2.0,
+  "checks": {
+    "joint_ranges_within_5pct_margin": {
+      "pass": true,
+      "violations": []
+    },
+    "no_self_collision_contacts": {
+      "pass": true,
+      "count": 0,
+      "examples": []
+    },
+    "ref_vs_actual_rms": {
+      "pass": true,
+      "rms_rad": 0.011924045881948297,
+      "limit_rad": 0.05,
+      "worst_joint": "dof_left_hip_pitch_04",
+      "worst_joint_rms_rad": 0.033057763589997076,
+      "max_abs_err_rad": 0.3603470340623667
+    },
+    "foot_geoms_static": {
+      "pass": true,
+      "frames_checked": 1067,
+      "max_displacement_m": 5.387192877189631e-05,
+      "limit_m": 0.001
+    }
+  },
+  "metrics": {
+    "rms_error_rad": 0.011924045881948297,
+    "max_abs_tracking_error_rad": 0.3603470340623667,
+    "max_joint_excursion_rad": 3.4103735135932274,
+    "max_joint_excursion_joint": "dof_right_shoulder_pitch_03",
+    "self_collision_contact_count": 0,
+    "max_foot_displacement_mm": 0.05387192877189631,
+    "per_joint_rms_rad": {
+      "dof_left_hip_pitch_04": 0.033057763589997076,
+      "dof_left_hip_roll_03": 0.0002052196893687474,
+      "dof_left_hip_yaw_03": 0.00046083269191723,
+      "dof_left_knee_04": 0.0064127217587722,
+      "dof_left_ankle_02": 0.01823089376994665,
+      "dof_right_hip_pitch_04": 0.024744446117177767,
+      "dof_right_hip_roll_03": 0.00016953624574830243,
+      "dof_right_hip_yaw_03": 0.0003154891542805108,
+      "dof_right_knee_04": 0.005251287715246364,
+      "dof_right_ankle_02": 0.013793628552700622,
+      "dof_right_shoulder_pitch_03": 0.010010566630341155,
+      "dof_right_shoulder_roll_03": 0.00905222409160956,
+      "dof_right_shoulder_yaw_02": 0.0025664856792901197,
+      "dof_right_elbow_02": 0.006125548952349251,
+      "dof_right_wrist_00": 0.0010744598562292301,
+      "dof_left_shoulder_pitch_03": 0.011987462183673197,
+      "dof_left_shoulder_roll_03": 0.011721693836964451,
+      "dof_left_shoulder_yaw_02": 0.0024339491629545235,
+      "dof_left_elbow_02": 0.0055053949419588515,
+      "dof_left_wrist_00": 0.0014470292162499607
+    },
+    "per_joint_observed_range_rad": {
+      "dof_left_hip_pitch_04": [
+        -0.06469829518151586,
+        0.6443102329224969
+      ],
+      "dof_left_hip_roll_03": [
+        6.898620452270149e-05,
+        0.0023887399666419114
+      ],
+      "dof_left_hip_yaw_03": [
+        -0.0001715705751392965,
+        0.00844207940422377
+      ],
+      "dof_left_knee_04": [
+        0.0013418009303709458,
+        0.8511507426499114
+      ],
+      "dof_left_ankle_02": [
+        -0.6544818272783957,
+        0.15958430273246108
+      ],
+      "dof_right_hip_pitch_04": [
+        -0.6443102552591767,
+        0.15831524021809373
+      ],
+      "dof_right_hip_roll_03": [
+        -0.0021093322165580066,
+        -2.297322008458753e-05
+      ],
+      "dof_right_hip_yaw_03": [
+        -0.0079547294117924,
+        0.0014461581077693155
+      ],
+      "dof_right_knee_04": [
+        -0.8492404487959249,
+        -0.001341596414302028
+      ],
+      "dof_right_ankle_02": [
+        -0.159584419369632,
+        0.6582575272228962
+      ],
+      "dof_right_shoulder_pitch_03": [
+        -3.4103735135932274,
+        0.21839414533217125
+      ],
+      "dof_right_shoulder_roll_03": [
+        -1.63215559742851,
+        0.01674071406013553
+      ],
+      "dof_right_shoulder_yaw_02": [
+        -0.0008606811896683705,
+        0.012036118927430924
+      ],
+      "dof_right_elbow_02": [
+        0.0002659939577620658,
+        1.5514989493922513
+      ],
+      "dof_right_wrist_00": [
+        -0.5983377823700954,
+        0.5983530689811632
+      ],
+      "dof_left_shoulder_pitch_03": [
+        -0.3440822295232612,
+        1.2810700979046103
+      ],
+      "dof_left_shoulder_roll_03": [
+        -0.01435362105922553,
+        1.6296172271810085
+      ],
+      "dof_left_shoulder_yaw_02": [
+        -0.5014766988468883,
+        0.5004688988444684
+      ],
+      "dof_left_elbow_02": [
+        -1.5528371566272956,
+        -0.0014712404566997886
+      ],
+      "dof_left_wrist_00": [
+        -0.5485616794883668,
+        0.5485411434446649
+      ]
+    }
+  },
+  "phases": [
+    {
+      "phase": "all_stop",
+      "gesture": "ALL_STOP",
+      "start_frame": 1,
+      "end_frame": 48
+    },
+    {
+      "phase": "roosevelt_flow",
+      "gesture": "STOP_FRONT_BACK_GO_LEFT_RIGHT",
+      "start_frame": 49,
+      "end_frame": 240
+    },
+    {
+      "phase": "clearance",
+      "gesture": "ALL_STOP",
+      "start_frame": 241,
+      "end_frame": 288
+    },
+    {
+      "phase": "pedestrian_crossing",
+      "gesture": "ALL_STOP_PED",
+      "start_frame": 289,
+      "end_frame": 899
+    },
+    {
+      "phase": "clearance",
+      "gesture": "ALL_STOP",
+      "start_frame": 900,
+      "end_frame": 947
+    },
+    {
+      "phase": "lane90_release",
+      "gesture": "GO_FROM_LEFT",
+      "start_frame": 948,
+      "end_frame": 1067
+    },
+    {
+      "phase": "walk_cycle",
+      "gesture": "WALK_CYCLE",
+      "start_frame": 1068,
+      "end_frame": 1143
+    }
+  ]
+}

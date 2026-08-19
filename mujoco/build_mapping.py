@@ -39,18 +39,12 @@ from datetime import datetime, timezone
 
 import numpy as np
 import mujoco
-from pathlib import Path
 
 # ---------------------------------------------------------------- constants
-PKG = str(Path(__file__).resolve().parent.parent)  # 套件根目錄(此檔在 <pkg>/mujoco/)
+PKG = "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package"
 GLB_MAIN = os.path.join(PKG, "viewer/models/kbot_traffic_director.glb")
 GLB_ORIG = os.path.join(PKG, "viewer/models/kbot_traffic_director.orig.glb")
-MJCF = os.environ.get(
-    "KSIM_ROOT",
-    str(Path.home() / "ksim"),
-) + "/examples/kbot/robot/kbot-headless/robot.mjcf"
-# ksim 是外部 repo(github.com/Sanwanh/ksim),不含在本專案內。
-# 放在別處的話設 KSIM_ROOT 環境變數。
+MJCF = "/Users/san/ksim/examples/kbot/robot/kbot-headless/robot.mjcf"
 OUT_JSON = os.path.join(PKG, "mujoco/mapping.json")
 FAIL_JSON = os.path.join(PKG, "mujoco/mapping_failure_report.json")
 

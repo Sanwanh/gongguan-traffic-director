@@ -1,6 +1,6 @@
 {
-  "video": "<repo-root>/video/kbot_traffic_30s.mp4",
-  "poster": "<repo-root>/video/kbot_traffic_30s_poster.jpg",
+  "video": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/video/kbot_traffic_30s.mp4",
+  "poster": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/video/kbot_traffic_30s_poster.jpg",
   "fps": 30,
   "width": 1920,
   "height": 1080,

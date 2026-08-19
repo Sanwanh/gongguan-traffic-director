@@ -74,9 +74,9 @@
   "console_error_count": 0,
   "console_errors": [],
   "screenshots": {
-   "roosevelt_flow": "<repo-root>/mujoco/verify_shots/shot_roosevelt_flow.png",
-   "lane90_release": "<repo-root>/mujoco/verify_shots/shot_lane90_release.png",
-   "all_stop": "<repo-root>/mujoco/verify_shots/shot_all_stop.png"
+   "roosevelt_flow": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot_roosevelt_flow.png",
+   "lane90_release": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot_lane90_release.png",
+   "all_stop": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot_all_stop.png"
   },
   "fps_values": []
  },

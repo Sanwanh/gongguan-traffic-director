@@ -68,7 +68,9 @@ let RENDER_PROFILES = Object.freeze({
   performance: Object.freeze({
     id: "performance",
     targetFps: 60,
-    maxPixelRatio: Math.min(2, devicePixelRatio),
+    // §23:2 在 Retina 上是 4 倍片段量。1.5 幾乎看不出差別但省 44% GPU。
+    // 要更銳利可在「參數 → 畫面與效能 → 高效能最大像素比」調回 2。
+    maxPixelRatio: Math.min(1.5, devicePixelRatio),
     uiUpdateHz: 8,
     shadows: false,
   }),
@@ -76,6 +78,8 @@ let RENDER_PROFILES = Object.freeze({
 });
 // 亮度(§2b 實測值:Hemi 1.6 / Sun 3.4 / 曝光 1.22)。§19 起改成可調。
 let LIGHTING = { exposure: 1.22, hemisphere: 1.6, sun: 3.4 };
+// §23:視窗失焦時的最小幀距(10 fps)。
+const BACKGROUND_FRAME_INTERVAL_MS = 100;
 
 // Hard follow-safety floor (SPEC_VIEWER_V2 §5): the bumper-to-bumper gap
 // between a leader and its same-lane follower never drops below 2 m.
@@ -243,6 +247,8 @@ const runtime = {
   hookTurnBox: null,
   environment: null,
   environmentReady: false,
+  environmentMergeStats: null,
+  windowFocused: true,
   kbotReady: false,
   signalsReady: false,
   // SPEC_VIEWER_V2 §1a: motion is controlled by the「動作效果」switch and is
@@ -358,6 +364,191 @@ function refreshModelStatus() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// §23 靜態場景合批
+//
+// 實測:2720 個 draw call 裡只有 289 個是人車(actor),其餘約 2400 個
+// (3.44M 三角形的 96%)全部來自 gongguan_v54_environment.glb 的 4860 個
+// 靜態 mesh。three.js 每個 draw call 的 CPU 成本(狀態切換 + uniform 上傳)
+// 才是這個場景的真正瓶頸,不是三角形數量。
+//
+// 合批策略:**只在每個頂層子節點的子樹內部合併**,頂層子節點本身保留。
+// 這樣三件既有機制完全不受影響:
+//   - runtime.buildingNodes(「場景建物」圖層的控制對象)是頂層子節點
+//   - cameraDirector.blockers 的 Box3 是從頂層子節點算的
+//   - buildBusStopPickMeshes() 依名稱找節點
+// 另外把「需要被個別定址」的節點排除在合併之外:
+//   - 店招字樣(錄影清場規則 §14,record_demo_video.mjs 靠 __setNodeVisibility)
+//   - 斑馬線條紋(§16 驗收靠 __paintedNodeBounds 讀每一條的包圍盒)
+// 合併後幾何是世界座標,所以掛在頂層子節點下時要把父層變換抵銷掉。
+// 只有「真的會被 hook 個別定址」的節點才不能合併:
+//   MainCrosswalk_*Stripe   → __paintedNodeBounds,§16 站位驗收讀每條的包圍盒
+//   五個店招節點            → __setNodeVisibility,§14 成品畫面清場規則
+// 其餘一律可合。之前寫成 /Text|Sign|BusStop/ 這種寬鬆樣式會誤保 961 個節點。
+const ENV_PRESERVE_NAME = new RegExp([
+  "MainCrosswalk_.*Stripe",
+  "CosmedText",
+  "TimberlandSnapshot_VerticalText",
+  "TimberlandSnapshot_TreeEmblem",
+  "OrangeBillboard_\\d+_Text",
+  "AluanSignText",
+].join("|"), "i");
+// 同材質再依空間分格,避免合成一顆超大 mesh 讓視錐剔除失效。
+// 實測取捨(基準 2752 draw / 3.45M tris):
+//   cell=25 → 1139 draw / 3.68M   cell=45 → 1092 / 3.84M   cell=70 → 1059 / 3.94M
+// 取 25:draw call 只比 70 多 7%,但多畫的三角形少一半。
+const ENV_MERGE_CELL_M = 25;
+
+// 材質分組簽章(§23)。**不含顏色** —— 顏色改用頂點色烘進合併後的幾何,
+// 由一顆共用材質乘上去。實測環境的 3899 顆可合併 mesh 幾乎每顆都有自己的
+// 顏色(f3f3ee / f2f3ee / f3f2ec 這種只差 1/255 的灰白),把顏色放進簽章
+// 會讓每組永遠只有一顆而合不起來。粗糙度/金屬度量化到 0.1,shading 差異
+// 肉眼不可見但分組數從數千降到個位數。
+function materialSignature(material) {
+  if (!material) return "none";
+  const q = (v, step) => Math.round((v ?? 0) / step) * step;
+  return [
+    material.type,
+    material.transparent ? "T" : "O",
+    material.side,
+    material.map?.uuid ?? "-",
+    material.normalMap?.uuid ?? "-",
+    material.alphaTest ?? 0,
+    q(material.roughness, 0.1).toFixed(1),
+    q(material.metalness, 0.1).toFixed(1),
+    material.emissive?.getHexString?.() ?? "-",
+    Number(material.opacity ?? 1).toFixed(2),
+  ].join("/");
+}
+
+// 把材質顏色寫成頂點色。合併後共用一顆 color=white 的材質,three 會做
+// material.color × vertexColor,所以每個原本的顏色都被完整保留。
+function bakeColorAttribute(geometry, color) {
+  const count = geometry.attributes.position.count;
+  const array = new Float32Array(count * 3);
+  for (let i = 0; i < count; i += 1) {
+    array[i * 3] = color.r;
+    array[i * 3 + 1] = color.g;
+    array[i * 3 + 2] = color.b;
+  }
+  geometry.setAttribute("color", new THREE.BufferAttribute(array, 3));
+}
+
+function mergeStaticEnvironment(root) {
+  const stats = { before: 0, preserved: 0, merged: 0, after: 0, groups: 0, failed: 0 };
+  if (!root) return stats;
+  root.updateWorldMatrix(true, true);
+
+  // 「場景建物」圖層與相機防穿模包圍盒都是以頂層子節點為單位,所以名字
+  // 含 building 的整棵子樹一律不動。
+  const buckets = new Map();
+  const doomed = [];
+  for (const child of root.children) {
+    // 建物的頂層子節點本身一定保留(圖層控制 + 相機防穿模包圍盒都靠它),
+    // 但子樹內部的 mesh 照樣可以合併 —— 合併結果掛回同一個子節點底下。
+    const isBuilding = /building/i.test(child.name);
+    child.traverse((node) => {
+      if (!node.isMesh || !node.geometry) return;
+      stats.before += 1;
+      if (node.isSkinnedMesh || Array.isArray(node.material)
+        || ENV_PRESERVE_NAME.test(node.name)
+        || !node.geometry.attributes.position) {
+        stats.preserved += 1;
+        return;
+      }
+      const p = node.getWorldPosition(new THREE.Vector3());
+      const cell = `${Math.floor(p.x / ENV_MERGE_CELL_M)}:`
+        + `${Math.floor(p.z / ENV_MERGE_CELL_M)}`;
+      // 建物各自成組(合併結果要掛回自己的頂層子節點),其餘走全域分組。
+      const scope = isBuilding ? `b:${child.uuid}` : "world";
+      const key = `${scope}|${materialSignature(node.material)}|${cell}`;
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          material: node.material, nodes: [], host: isBuilding ? child : null,
+        });
+      }
+      buckets.get(key).nodes.push(node);
+    });
+  }
+
+  const batchRoot = new THREE.Group();
+  batchRoot.name = "Canonical_V54_Environment_Merged";
+  const rootInverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+
+  for (const bucket of buckets.values()) {
+    if (bucket.nodes.length < 2) { stats.preserved += bucket.nodes.length; continue; }
+    const geometries = [];
+    let attributeKey = null;
+    let compatible = true;
+    for (const node of bucket.nodes) {
+      const g = node.geometry.clone();
+      g.morphAttributes = {};
+      for (const attr of ["uv1", "uv2", "uv3", "tangent"]) g.deleteAttribute(attr);
+      bakeColorAttribute(g, node.material.color ?? new THREE.Color(0xffffff));
+      const key = Object.keys(g.attributes).sort().join(",");
+      if (attributeKey === null) attributeKey = key;
+      else if (attributeKey !== key) { compatible = false; g.dispose(); break; }
+      g.applyMatrix4(node.matrixWorld);
+      g.applyMatrix4(rootInverse);
+      geometries.push(g);
+    }
+    if (!compatible) {
+      for (const g of geometries) g.dispose();
+      stats.preserved += bucket.nodes.length;
+      stats.failed += 1;
+      continue;
+    }
+    const mergedGeometry = mergeGeometries(geometries, false);
+    for (const g of geometries) g.dispose();
+    if (!mergedGeometry) {
+      stats.preserved += bucket.nodes.length;
+      stats.failed += 1;
+      continue;
+    }
+    mergedGeometry.computeBoundingSphere();
+    const material = bucket.material.clone();
+    material.vertexColors = true;
+    material.color = new THREE.Color(0xffffff);
+    const host = bucket.host ?? batchRoot;
+    const mergedGeometryLocal = mergedGeometry;
+    if (bucket.host) {
+      // 幾何目前在 environment root 的座標系,掛到建物子節點要再抵銷一次。
+      mergedGeometryLocal.applyMatrix4(
+        new THREE.Matrix4().copy(bucket.host.matrixWorld).invert()
+          .multiply(root.matrixWorld),
+      );
+      mergedGeometryLocal.computeBoundingSphere();
+    }
+    const mesh = new THREE.Mesh(mergedGeometryLocal, material);
+    mesh.name = `${bucket.host ? bucket.host.name : "Environment"}_Merged_${stats.groups}`;
+    mesh.castShadow = false;
+    mesh.receiveShadow = true;
+    host.add(mesh);
+    stats.groups += 1;
+    stats.merged += bucket.nodes.length;
+    doomed.push(...bucket.nodes);
+  }
+
+  for (const node of doomed) {
+    node.geometry.dispose();
+    node.removeFromParent();
+  }
+  // 合併後留下的空殼子節點清掉,免得 traverse 還要走 4000 多個空 Group。
+  for (const child of [...root.children]) {
+    if (child === batchRoot || /building/i.test(child.name)) continue;
+    let hasMesh = false;
+    child.traverse((n) => { if (n.isMesh) hasMesh = true; });
+    if (!hasMesh && child.children.length === 0) child.removeFromParent();
+  }
+  if (stats.groups > 0) root.add(batchRoot);
+
+  root.updateWorldMatrix(true, true);
+  let after = 0;
+  root.traverse((n) => { if (n.isMesh) after += 1; });
+  stats.after = after;
+  return stats;
+}
+
 function loadEnvironment() {
   refreshModelStatus();
   const draco = makeDracoLoader();
@@ -379,6 +570,8 @@ function loadEnvironment() {
         // §20:相機防穿模包圍盒 + 公車站 picking 目標(只做一次)。
         buildCameraBlockers();
         buildBusStopPickMeshes();
+        // 上面兩支都依名稱/頂層子節點找東西,所以合批一定要排在它們後面。
+        runtime.environmentMergeStats = mergeStaticEnvironment(runtime.environment);
         runtime.environmentReady = true;
         draco.dispose();
         refreshModelStatus();
@@ -2671,6 +2864,18 @@ function publishDebugState() {
   };
   window.__paramCode = () => paramRegistry.toCodeSnippet();
   // 亮度參數是直接寫到 renderer/light 上的,要有探針才驗得到。
+  // §23 效能驗證 hook:合批統計與實際生效的像素比。
+  window.__perfProfile = () => ({
+    merge: runtime.environmentMergeStats,
+    pixelRatio: renderer?.getPixelRatio() ?? null,
+    devicePixelRatio,
+    maxPixelRatio: runtime.renderProfile?.maxPixelRatio ?? null,
+    targetFps: runtime.renderProfile?.targetFps ?? null,
+    windowFocused: runtime.windowFocused,
+    drawCalls: renderer?.info?.render?.calls ?? null,
+    triangles: renderer?.info?.render?.triangles ?? null,
+    programs: renderer?.info?.programs?.length ?? null,
+  });
   window.__lightingProbe = () => ({
     exposure: renderer?.toneMappingExposure ?? null,
     hemisphere: runtime.hemiLight?.intensity ?? null,
@@ -6330,6 +6535,16 @@ function setCamera(name, options = {}) {
 // -------------------------------------------------------------- 互動綁定
 // OrbitControls 的 pointerdown 是非 capture,所以 capture 階段先改
 // mouseButtons.LEFT 就能做出「Shift+左鍵 = Pan」。
+function setupWindowFocusThrottle() {
+  runtime.windowFocused = document.hasFocus();
+  addEventListener("focus", () => {
+    runtime.windowFocused = true;
+    // 回到前景先把 clock 歸零,免得補上一大段 delta 讓人車瞬移。
+    clock.getDelta();
+  });
+  addEventListener("blur", () => { runtime.windowFocused = false; });
+}
+
 function setupCameraInteraction() {
   const element = renderer.domElement;
   let downX = 0;
@@ -7004,7 +7219,15 @@ function animate(nowMs = performance.now()) {
     clock.getDelta();
     return;
   }
-  const minimumFrameIntervalMs = 1000 / runtime.renderProfile.targetFps;
+  // §23:視窗在背景(沒有焦點但還看得到)時降到 10 fps。這是實際使用時
+  // 最常見的耗電情境 —— 分頁開著、人在別的視窗工作。不完全停是因為
+  // 停掉之後切回來會看到模擬時間跳一大段。
+  if (!runtime.windowFocused
+    && nowMs - lastRenderAtMs < BACKGROUND_FRAME_INTERVAL_MS) return;
+  // §23:門檻要留 1 ms 餘裕。1000/60 = 16.667 對上 rAF 實際的 16.66x ms,
+  // 每兩幀就被判定「太早」丟一幀,量到的 FPS 卡在 ~40,而 rAF 仍以 60 Hz
+  // 喚醒 —— 幀沒畫出來,CPU 卻照燒。
+  const minimumFrameIntervalMs = 1000 / runtime.renderProfile.targetFps - 1;
   if (nowMs - lastRenderAtMs < minimumFrameIntervalMs) return;
   lastRenderAtMs = nowMs;
   const delta = Math.min(clock.getDelta(), 0.05);
@@ -7060,6 +7283,7 @@ async function main() {
     initializePhases();
     populateSources();
     setupUiEvents();
+    setupWindowFocusThrottle();
     applyPacingPreset(ui.pacingPreset.value);
     applyHookTurnSetting(ui.hookTurn.checked);
     // 登錄表要在節奏預設套用完之後才建,快照到的預設值才是使用者看到的預設。

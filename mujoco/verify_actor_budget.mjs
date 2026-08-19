@@ -21,7 +21,7 @@ const argValue = (name, fallback) => {
 const PORT = Number(argValue("--port", "8124"));
 const OUT_DIR = argValue(
   "--out",
-  new URL("verify_shots", import.meta.url).pathname,
+  "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots",
 );
 const TAG = argValue("--tag", "v6");
 const CLOSEUPS = argv.includes("--no-closeups") ? false : true;

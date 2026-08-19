@@ -1,0 +1,254 @@
+{
+  "page": "http://localhost:8124/viewer/traffic_director.html",
+  "plan": "RECORDING_PLAN.md",
+  "panel": {
+    "autoMode": true,
+    "motionEffects": true,
+    "highPerformance": true,
+    "hookTurn": true,
+    "downstreamBlocked": false,
+    "recordingMode": false,
+    "trafficDensity": "normal",
+    "pacingPreset": "filming"
+  },
+  "durations": {
+    "roosevelt": 32,
+    "pedestrian": 30,
+    "lane90": 22
+  },
+  "shots": [
+    {
+      "shot": "shot1_overview",
+      "camera": "overview",
+      "recordingMode": true,
+      "panelWidth": 0,
+      "canvasWidth": 1920,
+      "phase": "roosevelt_flow",
+      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot1_overview.png",
+      "bytes": 323836
+    },
+    {
+      "shot": "shot2_roosevelt",
+      "camera": "street",
+      "recordingMode": false,
+      "gesture": "STOP_FRONT_BACK_GO_LEFT_RIGHT",
+      "amberTail": {
+        "left": 2.6,
+        "ambers": 8,
+        "main": 28,
+        "still": 0
+      },
+      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot2_roosevelt.png",
+      "amberImage": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot2_roosevelt_amber.png"
+    },
+    {
+      "shot": "shot3_pedestrian",
+      "camera": "crosswalk",
+      "recordingMode": true,
+      "probeMovingSamples": "11/11",
+      "station": "行穿線中央",
+      "holderPosition": [
+        15,
+        0.02,
+        8.33
+      ],
+      "pedestrianStates": {
+        "waiting_at_curb": 2,
+        "sidewalk_approach": 6,
+        "sidewalk_departure": 6,
+        "crossing": 1
+      },
+      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot3_pedestrian.png"
+    },
+    {
+      "shot": "shot4_retreat",
+      "camera": "crosswalk",
+      "recordingMode": true,
+      "onRoadLocks": "KBot 於車道護送中",
+      "retreatStation": "行穿線旁人行道",
+      "retreatPosition": [
+        15,
+        0.24,
+        17.15
+      ],
+      "locksAfter": "安全閘門正常",
+      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot4_retreat.png"
+    },
+    {
+      "shot": "shot5_hook",
+      "camera": "hook",
+      "gesture": "GO_FROM_LEFT",
+      "turning": {
+        "right": 1,
+        "hook": 1,
+        "sample": [
+          {
+            "id": "lane90-0",
+            "type": "scooter",
+            "turn": "hook",
+            "state": "turning",
+            "slot": 1,
+            "s": -9.5,
+            "t": 16.94,
+            "sideAccess": true,
+            "movement": "lane90_oneway",
+            "speed": 1.01
+          },
+          {
+            "id": "lane90-1",
+            "type": "scooter",
+            "turn": "hook",
+            "state": "alley",
+            "slot": null,
+            "s": -9.5,
+            "t": 21.61,
+            "sideAccess": true,
+            "movement": "lane90_oneway",
+            "speed": 0.71
+          },
+          {
+            "id": "lane90-2",
+            "type": "motorcycle",
+            "turn": "right",
+            "state": "alley",
+            "slot": null,
+            "s": -9.5,
+            "t": 26.35,
+            "sideAccess": true,
+            "movement": "lane90_oneway",
+            "speed": 0.64
+          },
+          {
+            "id": "lane90-3",
+            "type": "scooter",
+            "turn": "hook",
+            "state": "alley",
+            "slot": null,
+            "s": -6,
+            "t": 26.46,
+            "sideAccess": true,
+            "movement": "lane90_oneway",
+            "speed": 0.58
+          },
+          {
+            "id": "lane90-4",
+            "type": "scooter",
+            "turn": "right",
+            "state": "turning",
+            "slot": null,
+            "s": -6,
+            "t": 16.94,
+            "sideAccess": true,
+            "movement": "lane90_oneway",
+            "speed": 1.01
+          },
+          {
+            "id": "lane90-5",
+            "type": "motorcycle",
+            "turn": "right",
+            "state": "alley",
+            "slot": null,
+            "s": -6,
+            "t": 21.71,
+            "sideAccess": true,
+            "movement": "lane90_oneway",
+            "speed": 0.71
+          }
+        ]
+      },
+      "waiting": {
+        "box": 1,
+        "slots": [
+          1
+        ],
+        "shown": 1
+      },
+      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot5_hook.png"
+    },
+    {
+      "shot": "shot6_hook_release",
+      "camera": "hook",
+      "recordingMode": false,
+      "hookWaitBefore": 1,
+      "phaseActive": "roosevelt_flow",
+      "afterRelease": {
+        "shown": 0,
+        "merged": 0
+      },
+      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot6_hook_release.png"
+    },
+    {
+      "shot": "shot7_busstop",
+      "camera": "busstop",
+      "recordingMode": true,
+      "mode": "peak",
+      "dwelling": [
+        {
+          "id": "roosevelt-11",
+          "s": -36,
+          "lane_t": -0.44,
+          "direction": 1,
+          "dwellRemaining": 11.2,
+          "dwellDone": false,
+          "platform": "nw"
+        }
+      ],
+      "waiters": {
+        "states": {
+          "crossing": 17,
+          "waiting_for_bus": 3
+        },
+        "nearBus": 0,
+        "busS": -36
+      },
+      "boardingsBefore": 0,
+      "boardingsAfter": 1,
+      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot7_busstop.png"
+    },
+    {
+      "shot": "shot8_safety",
+      "camera": "street",
+      "recordingMode": false,
+      "blocked": {
+        "state": "blocked",
+        "reason": "downstream_not_clear",
+        "panel": "blocked",
+        "reasonText": "下游堵塞，禁止新車進入路口。",
+        "locks": "路口清空中\n          \n          \n            \n            下游堵塞"
+      },
+      "releasedPhase": "roosevelt_flow",
+      "allStopImmediate": true,
+      "image": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot8_safety.png",
+      "afterImage": "/Users/san/Gongguan-Business-District-Digital-Twin/output/robot_package/mujoco/verify_shots/shot8_safety_released.png"
+    }
+  ],
+  "final": {
+    "collisions": 0,
+    "busBoardings": 1,
+    "vehicleCounts": {
+      "car": 14,
+      "scooter": 17,
+      "motorcycle": 5,
+      "bus": 3,
+      "bicycle": 4
+    },
+    "signalHeads": 13,
+    "render": {
+      "measuredFps": 60,
+      "drawCalls": 1147,
+      "triangles": 1607299,
+      "mode": "performance"
+    }
+  },
+  "consoleErrors": [],
+  "notes": [
+    "載入完成:V54＋綠色 KBot＋13 組號誌｜60 FPS",
+    "錄影節奏秒數 {\"roosevelt\":32,\"pedestrian\":30,\"lane90\":22}",
+    "暖機 42s",
+    "Shot2 黃燈尾段:剩 2.6s、amber 8 組、幹道 28 車中 0 輛停住(此輪拍不到煞停,要用尖峰模式)",
+    "Shot3 這一輪沒有行人停在中央庇護帶(waiting_at_refuge 為 0)",
+    "Shot7 月台候車者 1 人(經一輪行人相位)",
+    "Shot7 靠站公車:{\"id\":\"roosevelt-11\",\"s\":-36,\"lane_t\":-0.44,\"direction\":1,\"dwellRemaining\":11.2,\"dwellDone\":false,\"platform\":\"nw\"};月台候車 0 人,行人狀態 {\"crossing\":17,\"waiting_for_bus\":3}"
+  ],
+  "failures": []
+}
