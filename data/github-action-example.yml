@@ -1,0 +1,61 @@
+# 部署路徑 (b):GitHub Action 定期抓取後 commit JSON(硬規則 2)。
+#
+# 用法:把這個檔複製到 repo 根目錄的 .github/workflows/refresh-live-feed.yml,
+# 並依你的 repo 實際目錄結構調整下面的 WORKDIR。
+#
+# 金鑰:Settings → Secrets and variables → Actions 加兩個 secret
+#   TDX_CLIENT_ID / TDX_CLIENT_SECRET
+# 沒設也沒關係 —— ingest.py 會寫出 degraded 的 tdx.json,viewer 自動退回合成,
+# 而 replay / synthetic 兩個 feed 完全不需要金鑰,照樣會更新。
+name: refresh live feed
+
+on:
+  schedule:
+    # 每 10 分鐘。TDX Live VD 是 60 秒更新,但 GitHub 的 cron 最密只到 5 分鐘,
+    # 而且每次都會產生一個 commit —— 10 分鐘是「夠新」與「不洗版」的折衷。
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-live-feed
+  cancel-in-progress: true
+
+env:
+  # 依你的 repo 實際結構調整
+  WORKDIR: output/robot_package
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 產生四個 feed
+        working-directory: ${{ env.WORKDIR }}
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: python3 data/ingest.py --all
+
+      - name: 驗證 schema 與隱私白名單
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          for f in data/live/*.json; do
+            python3 data/ingest.py --validate "$f"
+          done
+
+      - name: commit
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/live/*.json
+          git diff --staged --quiet || git commit -m "chore(data): refresh live feed"
+          git push

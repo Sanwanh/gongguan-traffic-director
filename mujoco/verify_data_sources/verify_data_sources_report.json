@@ -1,0 +1,912 @@
+{
+  "boot": {
+    "sourceId": "synthetic",
+    "url": null,
+    "schemaOk": false,
+    "degraded": false,
+    "trafficMode": "normal",
+    "trafficModeBeforeLive": "normal",
+    "kind": null,
+    "label": null,
+    "realtime": null,
+    "frameIndex": null,
+    "frameKind": null,
+    "observedAt": null,
+    "generatedAt": null,
+    "ageS": null,
+    "staleAfterS": null,
+    "stale": null,
+    "confidence": null,
+    "detector": null,
+    "measurement": null,
+    "budget": {
+      "mainVehicleMin": null,
+      "mainVehicleMax": null,
+      "speedRangeMps": null,
+      "directionSplit": null,
+      "laneQuota": null,
+      "mix": null
+    },
+    "actual": {
+      "mainVehicles": 28,
+      "sideVehicles": 6,
+      "pedestrians": 15,
+      "laneSpread": {
+        "outer": 19,
+        "bus": 3,
+        "middle": 2,
+        "inner": 4
+      },
+      "typeSpread": {
+        "scooter": 14,
+        "car": 8,
+        "motorcycle": 2,
+        "bus": 3,
+        "bicycle": 1
+      }
+    },
+    "badge": "合成",
+    "badgeClass": "data-source-badge",
+    "note": null,
+    "poll": {
+      "polls": 0,
+      "applies": 0,
+      "respawns": 0,
+      "failures": 0,
+      "lastError": null,
+      "intervalMs": 15000,
+      "timerActive": false
+    },
+    "warnings": []
+  },
+  "switched": {
+    "replay": {
+      "clicked": true,
+      "sourceId": "replay",
+      "degraded": false,
+      "badge": "歷史資料 · 非即時",
+      "trafficMode": "live",
+      "mainVehicles": 8,
+      "pedestrians": 13
+    },
+    "tdx": {
+      "clicked": true,
+      "sourceId": "tdx",
+      "degraded": true,
+      "badge": "無資料",
+      "trafficMode": "normal",
+      "mainVehicles": 28,
+      "pedestrians": 15
+    },
+    "file": {
+      "clicked": true,
+      "sourceId": "file",
+      "degraded": false,
+      "badge": "歷史資料 · 非即時",
+      "trafficMode": "live",
+      "mainVehicles": 22,
+      "pedestrians": 12
+    },
+    "synthetic": {
+      "clicked": true,
+      "sourceId": "synthetic",
+      "degraded": false,
+      "badge": "合成",
+      "trafficMode": "normal",
+      "mainVehicles": 28,
+      "pedestrians": 15
+    }
+  },
+  "replayFrames": [
+    {
+      "frame": 0,
+      "detector": "VELJA00",
+      "road": "羅斯福路三段",
+      "distanceM": 643,
+      "budget": [
+        3,
+        4
+      ],
+      "speedRangeMps": [
+        10.238,
+        13.889
+      ],
+      "mix": {
+        "car": 0.5348,
+        "scooter": 0.2084,
+        "motorcycle": 0.0379,
+        "bus": 0.1689,
+        "bicycle": 0.05
+      },
+      "laneQuota": {
+        "1": {
+          "inner": 121,
+          "middle": 354,
+          "outer": 525
+        },
+        "-1": {
+          "inner": 121,
+          "middle": 354,
+          "outer": 525
+        }
+      },
+      "measured": {
+        "volumeVehPer5Min": 135,
+        "flowVph": 1620,
+        "densityVehPerKm": 27.036,
+        "populationRaw": 3.677
+      },
+      "actualMainVehicles": 4,
+      "stale": true,
+      "badge": "歷史資料 · 非即時",
+      "trafficMode": "live",
+      "laneSpread": {
+        "inner": 1,
+        "bus": 1,
+        "outer": 2
+      },
+      "typeSpread": {
+        "car": 1,
+        "bus": 1,
+        "scooter": 1,
+        "motorcycle": 1
+      },
+      "pedestrians": 13,
+      "sideVehicles": 6
+    },
+    {
+      "frame": 1,
+      "detector": "VCCKW00",
+      "road": "羅斯福路五段",
+      "distanceM": 1036,
+      "budget": [
+        11,
+        12
+      ],
+      "speedRangeMps": [
+        10.019,
+        12.079
+      ],
+      "mix": {
+        "car": 0.529,
+        "scooter": 0.3106,
+        "motorcycle": 0.0565,
+        "bus": 0.054,
+        "bicycle": 0.05
+      },
+      "laneQuota": {
+        "1": {
+          "inner": 0,
+          "middle": 311,
+          "outer": 689
+        },
+        "-1": {
+          "inner": 0,
+          "middle": 311,
+          "outer": 689
+        }
+      },
+      "measured": {
+        "volumeVehPer5Min": 88,
+        "flowVph": 1056,
+        "densityVehPerKm": 27.518,
+        "populationRaw": 11.227
+      },
+      "actualMainVehicles": 12,
+      "stale": true,
+      "badge": "歷史資料 · 非即時",
+      "trafficMode": "live",
+      "laneSpread": {
+        "bus": 2,
+        "outer": 9,
+        "middle": 1
+      },
+      "typeSpread": {
+        "bus": 2,
+        "scooter": 4,
+        "car": 4,
+        "bicycle": 1,
+        "motorcycle": 1
+      },
+      "pedestrians": 11,
+      "sideVehicles": 6
+    },
+    {
+      "frame": 2,
+      "detector": "VF9KB00",
+      "road": "新生南路三段",
+      "distanceM": 377,
+      "budget": [
+        7,
+        8
+      ],
+      "speedRangeMps": [
+        8.281,
+        11.508
+      ],
+      "mix": {
+        "car": 0.3984,
+        "scooter": 0.3475,
+        "motorcycle": 0.0632,
+        "bus": 0.141,
+        "bicycle": 0.05
+      },
+      "laneQuota": {
+        "1": {
+          "inner": 411,
+          "middle": 416,
+          "outer": 172
+        },
+        "-1": {
+          "inner": 411,
+          "middle": 416,
+          "outer": 172
+        }
+      },
+      "measured": {
+        "volumeVehPer5Min": 155,
+        "flowVph": 1860,
+        "densityVehPerKm": 52.05,
+        "populationRaw": 7.079
+      },
+      "actualMainVehicles": 8,
+      "stale": true,
+      "badge": "歷史資料 · 非即時",
+      "trafficMode": "live",
+      "laneSpread": {
+        "outer": 4,
+        "middle": 2,
+        "bus": 1,
+        "inner": 1
+      },
+      "typeSpread": {
+        "scooter": 2,
+        "motorcycle": 2,
+        "bicycle": 1,
+        "bus": 1,
+        "car": 2
+      },
+      "pedestrians": 13,
+      "sideVehicles": 6
+    }
+  ],
+  "formulaCheck": {
+    "js": 7.079,
+    "py": 7.079
+  },
+  "staleUi": {
+    "badgeText": "歷史資料 · 非即時",
+    "badgeStale": true,
+    "noteVisible": true,
+    "noteText": "新生南路三段 · 377 公尺外（走廊代理值） 量測時間 2024-11-14T16:46:02+08:00 這是 2024-11-14 16:46 的歷史快照,不是即時資料。 逐車道分佈為推定值，非量測。 行人：此來源無資料，沿用模擬預設。",
+    "age": "655 天前",
+    "detector": "VF9KB00",
+    "vehicles": "7–8",
+    "headline": "歷史快照 · 偵測器輪播"
+  },
+  "fresh": {
+    "stale": false,
+    "badge": "即時",
+    "ageS": 4,
+    "confidence": "on-site",
+    "degraded": false,
+    "trafficMode": "live"
+  },
+  "broken": {
+    "trafficMode": "normal",
+    "sourceId": "file",
+    "failures": 3,
+    "lastError": "HTTP 404",
+    "mainVehicles": 28,
+    "badge": "無資料",
+    "backoffMs": 30000,
+    "timerActive": true
+  },
+  "recovery": {
+    "trafficMode": "live",
+    "failures": 0,
+    "intervalMs": 15000,
+    "badge": "歷史資料 · 非即時",
+    "observedAt": "2026-08-31T01:46:51+08:00"
+  },
+  "badSchema": {
+    "trafficMode": "live",
+    "observedAt": "2026-08-31T01:46:51+08:00",
+    "lastError": "schema 不符:not.the.right.schema.v9",
+    "failures": 2,
+    "mainVehicles": 22
+  },
+  "afterSchema": {
+    "trafficMode": "normal",
+    "failures": 3,
+    "mainVehicles": 28,
+    "badge": "無資料"
+  },
+  "restored": {
+    "sourceId": "synthetic",
+    "trafficMode": "normal",
+    "speedParams": [
+      5.5,
+      7.9
+    ],
+    "mainVehicles": 28,
+    "timerActive": false
+  },
+  "redLines": {
+    "dataCamera": 6,
+    "dataCommand": 4,
+    "paramRows": 100,
+    "paramCount": 100,
+    "missingHooks": [],
+    "densityButtons": [
+      "sparse",
+      "normal",
+      "peak",
+      "live"
+    ],
+    "dataSourceButtons": [
+      "synthetic",
+      "replay",
+      "tdx",
+      "file"
+    ]
+  },
+  "results": [
+    {
+      "name": "A1_page_loaded",
+      "ok": true
+    },
+    {
+      "name": "A2_hook_exists",
+      "ok": true
+    },
+    {
+      "name": "A3_default_is_synthetic",
+      "ok": true,
+      "detail": {
+        "sourceId": "synthetic",
+        "trafficMode": "normal"
+      }
+    },
+    {
+      "name": "A4_synthetic_scene_not_empty",
+      "ok": true,
+      "detail": {
+        "mainVehicles": 28,
+        "sideVehicles": 6,
+        "pedestrians": 15,
+        "laneSpread": {
+          "outer": 19,
+          "bus": 3,
+          "middle": 2,
+          "inner": 4
+        },
+        "typeSpread": {
+          "scooter": 14,
+          "car": 8,
+          "motorcycle": 2,
+          "bus": 3,
+          "bicycle": 1
+        }
+      }
+    },
+    {
+      "name": "A5_no_polling_when_synthetic",
+      "ok": true
+    },
+    {
+      "name": "A6_ui_block_present",
+      "ok": true
+    },
+    {
+      "name": "B_replay_switches_cleanly",
+      "ok": true,
+      "detail": {
+        "clicked": true,
+        "sourceId": "replay",
+        "degraded": false,
+        "badge": "歷史資料 · 非即時",
+        "trafficMode": "live",
+        "mainVehicles": 8,
+        "pedestrians": 13
+      }
+    },
+    {
+      "name": "B_tdx_switches_cleanly",
+      "ok": true,
+      "detail": {
+        "clicked": true,
+        "sourceId": "tdx",
+        "degraded": true,
+        "badge": "無資料",
+        "trafficMode": "normal",
+        "mainVehicles": 28,
+        "pedestrians": 15
+      }
+    },
+    {
+      "name": "B_file_switches_cleanly",
+      "ok": true,
+      "detail": {
+        "clicked": true,
+        "sourceId": "file",
+        "degraded": false,
+        "badge": "歷史資料 · 非即時",
+        "trafficMode": "live",
+        "mainVehicles": 22,
+        "pedestrians": 12
+      }
+    },
+    {
+      "name": "B_synthetic_switches_cleanly",
+      "ok": true,
+      "detail": {
+        "clicked": true,
+        "sourceId": "synthetic",
+        "degraded": false,
+        "badge": "合成",
+        "trafficMode": "normal",
+        "mainVehicles": 28,
+        "pedestrians": 15
+      }
+    },
+    {
+      "name": "B_tdx_degrades_to_synthetic",
+      "ok": true,
+      "detail": {
+        "clicked": true,
+        "sourceId": "tdx",
+        "degraded": true,
+        "badge": "無資料",
+        "trafficMode": "normal",
+        "mainVehicles": 28,
+        "pedestrians": 15
+      }
+    },
+    {
+      "name": "B_file_feed_usable",
+      "ok": true,
+      "detail": {
+        "clicked": true,
+        "sourceId": "file",
+        "degraded": false,
+        "badge": "歷史資料 · 非即時",
+        "trafficMode": "live",
+        "mainVehicles": 22,
+        "pedestrians": 12
+      }
+    },
+    {
+      "name": "C1_each_frame_is_a_real_detector",
+      "ok": true,
+      "detail": [
+        "VELJA00",
+        "VCCKW00",
+        "VF9KB00"
+      ]
+    },
+    {
+      "name": "C2_all_frames_drive_live_mode",
+      "ok": true,
+      "detail": [
+        "live",
+        "live",
+        "live"
+      ]
+    },
+    {
+      "name": "C3_vehicle_count_tracks_the_data",
+      "ok": true,
+      "detail": {
+        "counts": [
+          4,
+          12,
+          8
+        ],
+        "ratio": "3.00"
+      }
+    },
+    {
+      "name": "C4_counts_match_the_published_budget",
+      "ok": true,
+      "detail": [
+        {
+          "got": 4,
+          "budget": [
+            3,
+            4
+          ]
+        },
+        {
+          "got": 12,
+          "budget": [
+            11,
+            12
+          ]
+        },
+        {
+          "got": 8,
+          "budget": [
+            7,
+            8
+          ]
+        }
+      ]
+    },
+    {
+      "name": "C5_speed_range_comes_from_the_data",
+      "ok": true,
+      "detail": [
+        [
+          10.238,
+          13.889
+        ],
+        [
+          10.019,
+          12.079
+        ],
+        [
+          8.281,
+          11.508
+        ]
+      ]
+    },
+    {
+      "name": "C6_lane_quota_differs_per_detector",
+      "ok": true,
+      "detail": [
+        {
+          "inner": 121,
+          "middle": 354,
+          "outer": 525
+        },
+        {
+          "inner": 0,
+          "middle": 311,
+          "outer": 689
+        },
+        {
+          "inner": 411,
+          "middle": 416,
+          "outer": 172
+        }
+      ]
+    },
+    {
+      "name": "C7_mix_comes_from_the_data",
+      "ok": true,
+      "detail": [
+        {
+          "car": 0.5348,
+          "scooter": 0.2084,
+          "motorcycle": 0.0379,
+          "bus": 0.1689,
+          "bicycle": 0.05
+        },
+        {
+          "car": 0.529,
+          "scooter": 0.3106,
+          "motorcycle": 0.0565,
+          "bus": 0.054,
+          "bicycle": 0.05
+        },
+        {
+          "car": 0.3984,
+          "scooter": 0.3475,
+          "motorcycle": 0.0632,
+          "bus": 0.141,
+          "bicycle": 0.05
+        }
+      ]
+    },
+    {
+      "name": "C8_js_and_python_agree_on_the_formula",
+      "ok": true,
+      "detail": {
+        "js": 7.079,
+        "py": 7.079
+      }
+    },
+    {
+      "name": "C9_null_fields_keep_simulation_defaults",
+      "ok": true,
+      "detail": [
+        {
+          "pedestrians": 13,
+          "side": 6
+        },
+        {
+          "pedestrians": 11,
+          "side": 6
+        },
+        {
+          "pedestrians": 13,
+          "side": 6
+        }
+      ]
+    },
+    {
+      "name": "C10_lane_quota_reaches_the_scene",
+      "ok": true,
+      "detail": [
+        {
+          "quota": {
+            "inner": 121,
+            "middle": 354,
+            "outer": 525
+          },
+          "spread": {
+            "inner": 1,
+            "bus": 1,
+            "outer": 2
+          }
+        },
+        {
+          "quota": {
+            "inner": 0,
+            "middle": 311,
+            "outer": 689
+          },
+          "spread": {
+            "bus": 2,
+            "outer": 9,
+            "middle": 1
+          }
+        },
+        {
+          "quota": {
+            "inner": 411,
+            "middle": 416,
+            "outer": 172
+          },
+          "spread": {
+            "outer": 4,
+            "middle": 2,
+            "bus": 1,
+            "inner": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "D1_historic_data_marked_stale",
+      "ok": true,
+      "detail": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "D2_badge_says_not_realtime",
+      "ok": true,
+      "detail": [
+        "歷史資料 · 非即時",
+        "歷史資料 · 非即時",
+        "歷史資料 · 非即時"
+      ]
+    },
+    {
+      "name": "D3_badge_is_red_and_note_shown",
+      "ok": true,
+      "detail": {
+        "badgeText": "歷史資料 · 非即時",
+        "badgeStale": true,
+        "noteVisible": true,
+        "noteText": "新生南路三段 · 377 公尺外（走廊代理值） 量測時間 2024-11-14T16:46:02+08:00 這是 2024-11-14 16:46 的歷史快照,不是即時資料。 逐車道分佈為推定值，非量測。 行人：此來源無資料，沿用模擬預設。",
+        "age": "655 天前",
+        "detector": "VF9KB00",
+        "vehicles": "7–8",
+        "headline": "歷史快照 · 偵測器輪播"
+      }
+    },
+    {
+      "name": "D4_ui_shows_detector_and_count",
+      "ok": true,
+      "detail": {
+        "badgeText": "歷史資料 · 非即時",
+        "badgeStale": true,
+        "noteVisible": true,
+        "noteText": "新生南路三段 · 377 公尺外（走廊代理值） 量測時間 2024-11-14T16:46:02+08:00 這是 2024-11-14 16:46 的歷史快照,不是即時資料。 逐車道分佈為推定值，非量測。 行人：此來源無資料，沿用模擬預設。",
+        "age": "655 天前",
+        "detector": "VF9KB00",
+        "vehicles": "7–8",
+        "headline": "歷史快照 · 偵測器輪播"
+      }
+    },
+    {
+      "name": "D5_age_is_shown_in_human_units",
+      "ok": true,
+      "detail": "655 天前"
+    },
+    {
+      "name": "D6_fresh_feed_not_marked_stale",
+      "ok": true,
+      "detail": {
+        "stale": false,
+        "badge": "即時",
+        "ageS": 4,
+        "confidence": "on-site",
+        "degraded": false,
+        "trafficMode": "live"
+      }
+    },
+    {
+      "name": "D7_fresh_feed_drives_the_scene",
+      "ok": true,
+      "detail": {
+        "stale": false,
+        "badge": "即時",
+        "ageS": 4,
+        "confidence": "on-site",
+        "degraded": false,
+        "trafficMode": "live"
+      }
+    },
+    {
+      "name": "E1_missing_file_falls_back",
+      "ok": true,
+      "detail": {
+        "trafficMode": "normal",
+        "sourceId": "file",
+        "failures": 3,
+        "lastError": "HTTP 404",
+        "mainVehicles": 28,
+        "badge": "無資料",
+        "backoffMs": 30000,
+        "timerActive": true
+      }
+    },
+    {
+      "name": "E2_scene_still_populated",
+      "ok": true,
+      "detail": {
+        "trafficMode": "normal",
+        "sourceId": "file",
+        "failures": 3,
+        "lastError": "HTTP 404",
+        "mainVehicles": 28,
+        "badge": "無資料",
+        "backoffMs": 30000,
+        "timerActive": true
+      }
+    },
+    {
+      "name": "E3_backoff_engaged_and_still_retrying",
+      "ok": true,
+      "detail": {
+        "trafficMode": "normal",
+        "sourceId": "file",
+        "failures": 3,
+        "lastError": "HTTP 404",
+        "mainVehicles": 28,
+        "badge": "無資料",
+        "backoffMs": 30000,
+        "timerActive": true
+      }
+    },
+    {
+      "name": "E4_no_fatal_error",
+      "ok": true
+    },
+    {
+      "name": "E4b_recovers_without_user_action",
+      "ok": true,
+      "detail": {
+        "trafficMode": "live",
+        "failures": 0,
+        "intervalMs": 15000,
+        "badge": "歷史資料 · 非即時",
+        "observedAt": "2026-08-31T01:46:51+08:00"
+      }
+    },
+    {
+      "name": "E5a_bad_schema_never_applied",
+      "ok": true,
+      "detail": {
+        "trafficMode": "live",
+        "observedAt": "2026-08-31T01:46:51+08:00",
+        "lastError": "schema 不符:not.the.right.schema.v9",
+        "failures": 2,
+        "mainVehicles": 22
+      }
+    },
+    {
+      "name": "E5b_scene_holds_the_last_good_feed",
+      "ok": true,
+      "detail": {
+        "trafficMode": "live",
+        "observedAt": "2026-08-31T01:46:51+08:00",
+        "lastError": "schema 不符:not.the.right.schema.v9",
+        "failures": 2,
+        "mainVehicles": 22
+      }
+    },
+    {
+      "name": "E5c_falls_back_after_three_schema_failures",
+      "ok": true,
+      "detail": {
+        "trafficMode": "normal",
+        "failures": 3,
+        "mainVehicles": 28,
+        "badge": "無資料"
+      }
+    },
+    {
+      "name": "E6_clean_restore",
+      "ok": true,
+      "detail": {
+        "sourceId": "synthetic",
+        "trafficMode": "normal",
+        "speedParams": [
+          5.5,
+          7.9
+        ],
+        "mainVehicles": 28,
+        "timerActive": false
+      }
+    },
+    {
+      "name": "F1_data_camera_still_6",
+      "ok": true,
+      "detail": 6
+    },
+    {
+      "name": "F2_data_command_still_4",
+      "ok": true,
+      "detail": 4
+    },
+    {
+      "name": "F3_params_still_100",
+      "ok": true,
+      "detail": {
+        "dataCamera": 6,
+        "dataCommand": 4,
+        "paramRows": 100,
+        "paramCount": 100,
+        "missingHooks": [],
+        "densityButtons": [
+          "sparse",
+          "normal",
+          "peak",
+          "live"
+        ],
+        "dataSourceButtons": [
+          "synthetic",
+          "replay",
+          "tdx",
+          "file"
+        ]
+      }
+    },
+    {
+      "name": "F4_all_hooks_present",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "F5_four_data_sources",
+      "ok": true,
+      "detail": [
+        "synthetic",
+        "replay",
+        "tdx",
+        "file"
+      ]
+    },
+    {
+      "name": "F6_no_console_errors",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "consoleErrors": [],
+  "shots": [
+    "ds1_synthetic.png",
+    "ds2_replay_frame0.png",
+    "ds2_replay_frame1.png",
+    "ds2_replay_frame2.png",
+    "ds3_stale_marked.png",
+    "ds4_degraded.png"
+  ]
+}

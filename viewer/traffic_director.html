@@ -10,7 +10,7 @@
     content="以公館 Blender 場景、KBot ORCA 雙手與台灣官方規則建立的封閉場域交通指揮模擬。"
   >
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2308151b'/%3E%3Cpath d='M32 8 13 18v28l19 10 19-10V18L32 8Z' fill='%2338e6b0'/%3E%3Cpath d='M23 27h18v15H23z' fill='%2308151b'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="traffic_director.css?v=b04e3b50">
+  <link rel="stylesheet" href="traffic_director.css?v=8d0f969c">
 </head>
 <body>
   <main class="app-shell">
@@ -242,6 +242,7 @@
         <span><i class="legend-swatch pedestrian"></i>行人</span>
         <span><i class="legend-swatch controller"></i>KBot</span>
         <span id="kbotPostLabel" class="legend-station">進場中</span>
+        <span id="kbotDisabledChip" class="legend-station is-off" hidden>純號誌模式</span>
       </div>
     </section>
 
@@ -282,6 +283,17 @@
 
       <section class="panel-pane is-active" id="panelPaneCommand"
         role="tabpanel" aria-labelledby="panelTabCommand">
+
+      <!-- §26 機器人總開關。放在「指揮」分頁最上面:這是預設開著的分頁,
+           不必點任何東西就看得到;而且這一整頁講的就是機器人。 -->
+      <label class="switch-row controller-switch" for="kbotEnabled">
+        <span>
+          <strong>交通指揮機器人</strong>
+          <small>關閉為「純號誌模式」：號誌與車流照跑，KBot 不出場、不參與安全閘門</small>
+        </span>
+        <input id="kbotEnabled" type="checkbox" checked>
+        <i class="switch" aria-hidden="true"></i>
+      </label>
 
       <section class="phase-card" aria-labelledby="phaseTitle">
         <div class="section-heading">
@@ -468,12 +480,14 @@
               <button type="button" data-density="sparse">稀疏</button>
               <button type="button" data-density="normal" class="is-active">一般</button>
               <button type="button" data-density="peak">尖峰</button>
+              <button type="button" data-density="live">資料驅動</button>
             </div>
           </div>
           <select id="trafficDensity" class="mirror-select" tabindex="-1" aria-hidden="true">
             <option value="sparse">稀疏</option>
             <option value="normal" selected>一般</option>
             <option value="peak">尖峰</option>
+            <option value="live">資料驅動</option>
           </select>
           <button class="secondary-button" id="reseedButton" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -500,6 +514,49 @@
             <span><b id="boardingCount">0</b> 上車人次</span>
             <span id="spawnAdjustNote" hidden></span>
           </div>
+        </div>
+
+        <!-- §24 真實資料層。viewer 只認 data/SCHEMA.md 的 JSON,不管資料哪來。 -->
+        <div class="param-group" id="dataSourceGroup">
+          <p class="group-title">資料來源</p>
+          <div class="field-row">
+            <span class="field-label">
+              <strong>來源</strong>
+              <small>合成以外都讀 data/live/*.json,抓不到自動退回合成</small>
+            </span>
+            <div class="segmented" id="dataSourceSegmented" role="group" aria-label="資料來源">
+              <button type="button" data-datasource="synthetic" class="is-active">合成</button>
+              <button type="button" data-datasource="replay">重播</button>
+              <button type="button" data-datasource="tdx">TDX</button>
+              <button type="button" data-datasource="file">檔案</button>
+            </div>
+          </div>
+          <select id="dataSourceSelect" class="mirror-select" tabindex="-1" aria-hidden="true">
+            <option value="synthetic" selected>合成</option>
+            <option value="replay">重播</option>
+            <option value="tdx">TDX</option>
+            <option value="file">檔案</option>
+          </select>
+          <input
+            id="dataSourceUrl"
+            class="param-search data-source-url"
+            type="text"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="../data/live/custom.json 或 https://…"
+            aria-label="資料位址"
+            hidden
+          >
+          <p class="data-source-state" id="dataSourceState" aria-live="polite">
+            <span class="data-source-badge" id="dataSourceBadge">合成</span>
+            <span id="dataSourceHeadline">未接外部資料，使用 seeded 合成車流</span>
+          </p>
+          <div class="spawn-summary" id="dataSourceSummary">
+            <span><b id="dataAgeValue">—</b> 新鮮度</span>
+            <span><b id="dataDetectorValue">—</b> 偵測器</span>
+            <span><b id="dataVehicleValue">—</b> 對應車數</span>
+          </div>
+          <p class="data-source-note" id="dataSourceNote" hidden></p>
         </div>
 
         <div class="param-group">
@@ -740,6 +797,6 @@
       }
     }
   </script>
-  <script type="module" src="traffic_director.js?v=2721db03"></script>
+  <script type="module" src="traffic_director.js?v=afa79523"></script>
 </body>
 </html>

@@ -1,0 +1,154 @@
+{
+  "$comment": [
+    "公館路口的偵測器對應表(§24)。這是 ingest.py 的唯一權威來源:哪幾台",
+    "偵測器算是這個路口的代理值、各自的角色與距離、以及它們的量測如何被",
+    "解讀。改這個檔不需要改任何程式。",
+    "",
+    "重要且必須誠實面對的限制:羅斯福路四段(就是這個路口)整條**沒有任何",
+    "車輛偵測器**,而且全台北 636 個 VD 沒有一個是路口/停止線型",
+    "(TDX 靜態表 DetectionType==4 的計數為 0)。所以下面全部是",
+    "「走廊代理值(corridor proxy)」,不是路口實測值。UI 必須標明。"
+  ],
+  "schema": "gongguan.detectors.v1",
+  "site": {
+    "id": "gongguan-roosevelt-lane90",
+    "labelZhTw": "羅斯福路四段 × 羅斯福路四段90巷",
+    "lat": 25.0145,
+    "lon": 121.534,
+    "note": "座標取自場景校準用的路口中心;水源市場/捷運公館站1號出口在一側,臺大校總區/銘傳國小在另一側。"
+  },
+  "simulation": {
+    "generalLanes": 6,
+    "busLanes": 2,
+    "spanM": 136,
+    "spanSource": "traffic_simulation_core.mjs SPAWN_SPAN_M",
+    "speedLimitKph": 40,
+    "speedLimitSource": "traffic_rules/taiwan_traffic_director_rules.json simulation_constants.speed_limit_kph",
+    "speedToleranceKph": 10,
+    "speedToleranceSource": "道路交通管理處罰條例第 43/40 條的科學儀器採證容許誤差(市區道路 +10 km/h);用來當 desiredSpeed 的上限,避免 643 公尺外的高速走廊值套到 40 km/h 的號誌化路口。",
+    "speedFloorKph": 5,
+    "speedFloorSource": "AvgSpeed 可能為 0(全停)或 -99(TDX swagger 標註的資料異常);低於步行速度時 VD 的速度估計不可信,k=q/v 會爆炸。"
+  },
+  "vehicleClassMapping": {
+    "$comment": [
+      "臺北市 GetVDDATA.xml 與 TDX Live VD 是同一批感測器。逐車道欄位",
+      "Svolume / Mvolume / Lvolume 的解讀,以及支持證據:",
+      "1) Volume == Svolume+Mvolume+Lvolume 在全部 2195 條車道上完全成立",
+      "   (2024-11-14 快照,0 筆不符),所以三者是互斥且窮盡的分類。",
+      "2) TDX Live VD 對同一批感測器的 VehicleType 列舉是 S/L/T/M =",
+      "   小客車/大車/聯結車/機車 —— M 是機車。",
+      "3) 快照中有 12 條車道(8 台裝置)的 L/Volume > 0.9,例如 VELJA00 的",
+      "   LaneNO=0 是 7/7 全部 L —— 這是公車專用道的特徵,支持 L = 大型車。",
+      "4) VELJA00 LaneNO=5 的 M 佔 63.4%。若 M 是「中型車」,一條路面車道",
+      "   63% 都是中型貨車不可能;若 M 是機車,台北外側車道 63% 機車完全合理。",
+      "如果日後證實解讀有誤,只要改這個表,不必改程式。"
+    ],
+    "Svolume": "small",
+    "Mvolume": "motorcycle",
+    "Lvolume": "large",
+    "toSimulationTypes": {
+      "small": ["car"],
+      "motorcycle": ["scooter", "motorcycle"],
+      "large": ["bus"]
+    },
+    "motorcycleSplit": {
+      "scooter": 0.55,
+      "motorcycle": 0.1,
+      "source": "traffic_rules/taiwan_traffic_director_rules.json vehicle_mix_project_assumption 的速克達:打檔車比值(0.55:0.10)。VD 無法區分速克達與打檔車,這是專案假設,不是量測。"
+    },
+    "bicycle": {
+      "share": 0.05,
+      "source": "vehicle_mix_project_assumption.bicycle。VD 的線圈/雷達不計自行車,所以自行車佔比一律沿用專案假設並在其餘四類上等比例縮放。這是假設,不是量測。"
+    },
+    "largeIsBusOnly": {
+      "value": false,
+      "note": "L(大型車)包含貨車與聯結車,不只公車;模擬沒有貨車型別,所以 L 全部映射成 bus,會高估公車。這一點在 UI 與 SPEC 都要標明。"
+    }
+  },
+  "laneMapping": {
+    "method": "class-share-ranking",
+    "confidence": "heuristic",
+    "$comment": [
+      "凍結快照(以及 TDX Live VD 的 LaneID)都沒有直接說某條車道是內/中/外側。",
+      "推定規則,依序套用:",
+      "  1. L/Volume > 0.9 且 Volume >= 5 的車道 → 公車專用道,不進一般車道配額。",
+      "  2. 其餘車道依機車佔比(Mvolume/Volume)由高到低排序,平均切成三份 →",
+      "     外側 / 中間 / 內側。依據:台灣「慢車靠右」與模擬既有的 §4a",
+      "     MAIN_ROOSEVELT_LANES.allowed 清單(只有外側車道允許速克達與自行車)。",
+      "  3. 每個位置的密度加總 → 生成權重(千分比)。",
+      "這是啟發式推定,不是量測,所以輸出 laneMapping.confidence='heuristic',",
+      "UI 必須顯示。真正可靠的逐車道歸屬只能靠 CCTV 影像管線(file/url 來源)。"
+    ]
+  },
+  "directionSplit": {
+    "default": 0.5,
+    "defaultSource": "assumed-5050",
+    "$comment": [
+      "凍結快照沒有任何方向資訊(沒有 Bearing / RoadDirection / LinkID),所以",
+      "replay 一律用 0.5 並標 assumed-5050。TDX Live VD 有 LinkFlows[].LinkID,",
+      "靜態表 /v2/Road/Traffic/VD 的 DetectionLinks[].Bearing 可解出方向;",
+      "有金鑰時 ingest.py --source tdx 會填 measured 的實際比例。"
+    ]
+  },
+  "detectors": [
+    {
+      "id": "VELJA00",
+      "roadZhTw": "羅斯福路三段",
+      "role": "upstream-proxy",
+      "distanceM": 643,
+      "bearingsZhTw": "西北 / 東南雙向",
+      "laneCountStatic2026": 7,
+      "laneCountSnapshot2024": 6,
+      "positionSource": "TDX /api/basic/v2/Road/Traffic/VD/City/Taipei 靜態表(2026-08-30 調查);精確經緯度需以金鑰重新拉取,見 ingest.py detectors --refresh。",
+      "primary": true,
+      "note": "距離路口最近、且真的在羅斯福路上的偵測器。與 VCCKW00 一上一下把路口夾在中間。"
+    },
+    {
+      "id": "VCCKW00",
+      "roadZhTw": "羅斯福路五段",
+      "role": "downstream-proxy",
+      "distanceM": 1036,
+      "bearingsZhTw": "北向",
+      "laneCountStatic2026": 4,
+      "laneCountSnapshot2024": 2,
+      "positionSource": "同上",
+      "primary": true,
+      "note": "路口下游。2024 快照只有 2 條車道,取樣數少,速度與密度波動較大。"
+    },
+    {
+      "id": "VF9KB00",
+      "roadZhTw": "新生南路三段",
+      "role": "cross-street-reference",
+      "distanceM": 377,
+      "bearingsZhTw": "南 / 北雙向",
+      "laneCountStatic2026": 6,
+      "laneCountSnapshot2024": 6,
+      "positionSource": "同上",
+      "primary": false,
+      "note": "距離上最近的偵測器,但在**新生南路**不是羅斯福路。只當交叉街參考值,不列為主要代理。"
+    }
+  ],
+  "replay": {
+    "snapshot": "snapshots/taipei_vd_20241114T164602.xml",
+    "snapshotSha256": "c151a6cd7bbfb6e5758db022a0f26d7cd50a9b6b393b2f05b3841d22c52a03ee",
+    "snapshotBytes": 502557,
+    "observedAt": "2024-11-14T16:46:02+08:00",
+    "observedAtField": "VDInfoSet/ExchangeTime",
+    "frameKind": "detector-rotation",
+    "frameSeconds": 20,
+    "$comment": [
+      "這份快照是**單一時刻**的量測(724 台裝置、2195 條車道,全部同一個",
+      "ExchangeTime),不是時間序列 —— 臺北市從來沒有公開過 VD 的時間序列,",
+      "而這個 blob 自 2024-11-14 起就凍結了(每次重抓 Last-Modified 都一樣)。",
+      "",
+      "所以 replay 的 frame 定義是:**一個 frame = 一台真實偵測器在",
+      "2024-11-14 16:46 的真實逐車道量測**,播放器依序輪播 detectors 清單。",
+      "每一個數字都是真的,但 frame 之間的變化是**空間差異**,不是時間變化。",
+      "UI 標示為「歷史快照 · 偵測器輪播」,絕不可寫成「即時」。",
+      "",
+      "等 san 拿到 TDX 金鑰後,`ingest.py capture --source tdx --loop` 會把",
+      "真正的時間序列一筆一筆附加成 .jsonl,replay 讀到 jsonl 時會自動改成",
+      "frameKind='temporal' 並標示「歷史重播」。"
+    ]
+  }
+}

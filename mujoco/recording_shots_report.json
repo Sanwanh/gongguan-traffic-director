@@ -25,7 +25,7 @@
       "canvasWidth": 1920,
       "phase": "roosevelt_flow",
       "image": "<repo-root>/mujoco/verify_shots/shot1_overview.png",
-      "bytes": 323836
+      "bytes": 323690
     },
     {
       "shot": "shot2_roosevelt",
@@ -33,10 +33,10 @@
       "recordingMode": false,
       "gesture": "STOP_FRONT_BACK_GO_LEFT_RIGHT",
       "amberTail": {
-        "left": 2.6,
+        "left": 2.5,
         "ambers": 8,
         "main": 28,
-        "still": 0
+        "still": 1
       },
       "image": "<repo-root>/mujoco/verify_shots/shot2_roosevelt.png",
       "amberImage": "<repo-root>/mujoco/verify_shots/shot2_roosevelt_amber.png"
@@ -49,7 +49,7 @@
       "station": "行穿線中央",
       "holderPosition": [
         15,
-        0.02,
+        0.023448925292726075,
         8.33
       ],
       "pedestrianStates": {
@@ -68,7 +68,7 @@
       "retreatStation": "行穿線旁人行道",
       "retreatPosition": [
         15,
-        0.24,
+        0.21749004996251028,
         17.15
       ],
       "locksAfter": "安全閘門正常",
@@ -89,10 +89,10 @@
             "state": "turning",
             "slot": 1,
             "s": -9.5,
-            "t": 16.94,
+            "t": 16.96,
             "sideAccess": true,
             "movement": "lane90_oneway",
-            "speed": 1.01
+            "speed": 0.98
           },
           {
             "id": "lane90-1",
@@ -101,34 +101,34 @@
             "state": "alley",
             "slot": null,
             "s": -9.5,
-            "t": 21.61,
+            "t": 21.62,
             "sideAccess": true,
             "movement": "lane90_oneway",
-            "speed": 0.71
+            "speed": 0.68
           },
           {
             "id": "lane90-2",
             "type": "motorcycle",
-            "turn": "right",
+            "turn": "hook",
             "state": "alley",
             "slot": null,
             "s": -9.5,
-            "t": 26.35,
+            "t": 26.37,
             "sideAccess": true,
             "movement": "lane90_oneway",
-            "speed": 0.64
+            "speed": 0.63
           },
           {
             "id": "lane90-3",
             "type": "scooter",
-            "turn": "hook",
+            "turn": "right",
             "state": "alley",
             "slot": null,
             "s": -6,
             "t": 26.46,
             "sideAccess": true,
             "movement": "lane90_oneway",
-            "speed": 0.58
+            "speed": 0.56
           },
           {
             "id": "lane90-4",
@@ -137,22 +137,22 @@
             "state": "turning",
             "slot": null,
             "s": -6,
-            "t": 16.94,
+            "t": 16.96,
             "sideAccess": true,
             "movement": "lane90_oneway",
-            "speed": 1.01
+            "speed": 0.98
           },
           {
             "id": "lane90-5",
             "type": "motorcycle",
-            "turn": "right",
+            "turn": "hook",
             "state": "alley",
             "slot": null,
             "s": -6,
-            "t": 21.71,
+            "t": 21.72,
             "sideAccess": true,
             "movement": "lane90_oneway",
-            "speed": 0.71
+            "speed": 0.69
           }
         ]
       },
@@ -188,7 +188,7 @@
           "s": -36,
           "lane_t": -0.44,
           "direction": 1,
-          "dwellRemaining": 11.2,
+          "dwellRemaining": 11.21,
           "dwellDone": false,
           "platform": "nw"
         }
@@ -245,10 +245,10 @@
     "載入完成:V54＋綠色 KBot＋13 組號誌｜60 FPS",
     "錄影節奏秒數 {\"roosevelt\":32,\"pedestrian\":30,\"lane90\":22}",
     "暖機 42s",
-    "Shot2 黃燈尾段:剩 2.6s、amber 8 組、幹道 28 車中 0 輛停住(此輪拍不到煞停,要用尖峰模式)",
+    "Shot2 黃燈尾段:剩 2.5s、amber 8 組、幹道 28 車中 1 輛停住",
     "Shot3 這一輪沒有行人停在中央庇護帶(waiting_at_refuge 為 0)",
     "Shot7 月台候車者 1 人(經一輪行人相位)",
-    "Shot7 靠站公車:{\"id\":\"roosevelt-11\",\"s\":-36,\"lane_t\":-0.44,\"direction\":1,\"dwellRemaining\":11.2,\"dwellDone\":false,\"platform\":\"nw\"};月台候車 0 人,行人狀態 {\"crossing\":17,\"waiting_for_bus\":3}"
+    "Shot7 靠站公車:{\"id\":\"roosevelt-11\",\"s\":-36,\"lane_t\":-0.44,\"direction\":1,\"dwellRemaining\":11.21,\"dwellDone\":false,\"platform\":\"nw\"};月台候車 0 人,行人狀態 {\"crossing\":17,\"waiting_for_bus\":3}"
   ],
   "failures": []
 }

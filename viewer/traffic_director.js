@@ -25,6 +25,8 @@ import {
   STRAIGHT_CROSS_CORRIDOR,
   TRAFFIC_DENSITY_MODES,
   advancePedestrian,
+  applyLiveSpeedRange,
+  applyLiveTrafficBudget,
   buildHookMergePath,
   buildLane90TurnPath,
   buildSpawnPlan,
@@ -40,10 +42,12 @@ import {
   resolveTrafficCommand,
   roadCurveOffset,
   roadCurveSlope,
+  resetLiveTrafficBudget,
   rollPedestrianCrossing,
+  vdVolumeToPopulation,
   vehicleClearsCrosswalk,
   vehicleOccupiesTransitionConflict,
-} from "./traffic_simulation_core.mjs?v=d97942c3";
+} from "./traffic_simulation_core.mjs?v=c99b8d4f";
 
 const RULES_URL = "../traffic_rules/taiwan_traffic_director_rules.json?v=b1a6379f";
 const ENVIRONMENT_URL = "models/gongguan_v54_environment.glb?v=685c61c0";
@@ -125,6 +129,10 @@ const ui = {
   hookWaitChip: document.querySelector("#hookWaitChip"),
   boardingCount: document.querySelector("#boardingCount"),
   kbotPostLabel: document.querySelector("#kbotPostLabel"),
+  // §26 機器人總開關
+  kbotEnabled: document.querySelector("#kbotEnabled"),
+  kbotDisabledChip: document.querySelector("#kbotDisabledChip"),
+  kbotPostGroup: document.querySelector("#kbotPostGroup"),
   kbotPostPreview: document.querySelector("#kbotPostPreview"),
   kbotPostSegmented: document.querySelector("#kbotPostSegmented"),
   kbotPostTarget: document.querySelector("#kbotPostTarget"),
@@ -148,6 +156,17 @@ const ui = {
   durationPedestrianValue: document.querySelector("#durationPedestrianValue"),
   durationLane90Value: document.querySelector("#durationLane90Value"),
   trafficModeLabel: document.querySelector("#trafficModeLabel"),
+  // §24 真實資料層
+  dataSourceGroup: document.querySelector("#dataSourceGroup"),
+  dataSourceSegmented: document.querySelector("#dataSourceSegmented"),
+  dataSourceSelect: document.querySelector("#dataSourceSelect"),
+  dataSourceUrl: document.querySelector("#dataSourceUrl"),
+  dataSourceBadge: document.querySelector("#dataSourceBadge"),
+  dataSourceHeadline: document.querySelector("#dataSourceHeadline"),
+  dataSourceNote: document.querySelector("#dataSourceNote"),
+  dataAgeValue: document.querySelector("#dataAgeValue"),
+  dataDetectorValue: document.querySelector("#dataDetectorValue"),
+  dataVehicleValue: document.querySelector("#dataVehicleValue"),
   busLaneCount: document.querySelector("#busLaneCount"),
   spawnAdjustNote: document.querySelector("#spawnAdjustNote"),
   reseedButton: document.querySelector("#reseedButton"),
@@ -219,18 +238,31 @@ const runtime = {
   kbotProbe: null,
   kbotArms: { left: null, right: null },
   kbotHands: { left: null, right: null },
+  // §26:GLB 內 TrafficDirector_KBot_Root 帶「每個相位一個」的建模朝向
+  // (手勢段 45°、lane90_release 與步行循環段 135°),朝向公式必須即時
+  // 讀它才會對;兩隻腳的節點用於 __kbotGaitProbe 的步態量測。
+  kbotRootNode: null,
+  kbotFeet: { left: null, right: null },
+  kbotFootParts: { left: [], right: [] },
   kbotPosePhaseId: "all_stop",
   kbotGestureClock: 0,
   kbotSampleTimeS: 0,
   kbotYawTargetRad: 0,
+  // §26:朝向改成「先算模擬座標方位角、最後才換算 holder yaw」。
+  // 這樣 GLB 建模朝向切換(45°↔135°)當幀被吸收,不會變成 90° 的自旋。
+  kbotFacingRad: 0,
+  kbotFacingTargetRad: 0,
   kbotWalk: {
     targets: null,
     kind: null,
-    baseY: 0.30,
+    baseY: 0.217,
     bobPhase: 0,
     clock: 0,
     entryDone: false,
     entryDelayS: 2.5,
+    // §26 起停平滑:實際速度朝 speed 逼近(加速度上限),腳步播放率與
+    // 身體起伏都讀這個值,起步不再是瞬間 0→1.35 的滑行。
+    currentSpeed: 0,
   },
   kbotBlend: null,
   // §18 崗位微調(預設完全不作用:preview=false 時所有行為與沒有這組 UI
@@ -250,12 +282,22 @@ const runtime = {
   environmentMergeStats: null,
   windowFocused: true,
   kbotReady: false,
+  // §26「交通指揮機器人」總開關。關掉 = 純號誌模式:模型照載(否則
+  // #modelStatus 會永遠停在 is-loading,違反 CDP 載入判準),但不出場、
+  // 不參與安全閘門、不吃相機跟隨。
+  kbotEnabled: true,
   signalsReady: false,
   // SPEC_VIEWER_V2 §1a: motion is controlled by the「動作效果」switch and is
   // ON by default, regardless of the OS prefers-reduced-motion setting.
   reducedMotion: false,
   renderProfile: RENDER_PROFILES.performance,
   trafficMode: "normal",
+  // §24 真實資料層。dataSourceId 是使用者選的來源;dataFeed 是最後一份
+  // 通過驗證的 JSON;trafficModeBeforeLive 記住切進「即時」之前的檔位,
+  // 資料掉線時要能原路退回去。
+  dataSourceId: "synthetic",
+  dataFeed: null,
+  trafficModeBeforeLive: "normal",
   // §22 目前顯示的控制面板分頁(command / sim / params)。
   panelTab: "command",
   renderStats: {
@@ -605,15 +647,28 @@ function loadEnvironment() {
 // 崗位不安全時(車流相位、或相位剩餘時間不足)一律退到最近的避車處
 // ——人行道轉角(CONTROLLER_REFUGES;公車站月台已從清單移除)。
 // 出廠預設(還原按鈕與「複製設定」的對照基準),永遠凍結。
+// §26 崗位 y:改成「實測地面高度 + 腳底相對 holder 原點的偏移」。舊值
+// 0.24 / 0.02 是猜的。兩個實測量:
+//   (a) __groundHeightAt() 打射線量到的實景面——
+//       人行道 0.2127(PedestrianSidewalk_ShuiyuanCommercialEast_01)、
+//       行穿線白漆 0.0161(MainCrosswalk_Straight656_Stripe_20)、
+//       巷90 巷口 0.2201(SidewalkJoint_2_Transverse_000)。
+//   (b) 站崗姿勢下腳底(FootBushing mesh 世界 AABB min.y)相對 holder 原點
+//       的高度。四個手勢窗逐一量都是 **−0.4 mm**(幾乎就在原點),但剛從
+//       走路切回站崗的頭幾秒偶爾會量到 −14 mm——烘焙姿勢在不同時間點有
+//       PD 追蹤殘差。取 +0.004 這個折衷值,誤差就被壓在 ±1 cm 以內。
+// ⇒ 崗位 y = 地面 y + 0.004。舊值 0.24 讓他在人行道上浮 2.7 cm,
+//   舊值 0.02 反而讓他陷進行穿線白漆 0.4 cm。
+const KBOT_SOLE_OFFSET_M = 0.004;
 const KBOT_POSTS_DEFAULT = Object.freeze({
   stand: Object.freeze({
-    id: "stand", label: "行穿線旁人行道", x: 15.0, y: 0.24, z: 17.15,
+    id: "stand", label: "行穿線旁人行道", x: 15.0, y: 0.217, z: 17.15,
   }),
   crosswalk: Object.freeze({
-    id: "crosswalk", label: "行穿線中央", x: 15.00, y: 0.02, z: 8.33,
+    id: "crosswalk", label: "行穿線中央", x: 15.00, y: 0.020, z: 8.33,
   }),
   lane90: Object.freeze({
-    id: "lane90", label: "巷90 巷口", x: -0.5, y: 0.24, z: 17.00,
+    id: "lane90", label: "巷90 巷口", x: -0.5, y: 0.224, z: 17.00,
   }),
 });
 const KBOT_POST_IDS = Object.freeze(["stand", "crosswalk", "lane90"]);
@@ -638,9 +693,11 @@ const LANE90_MOUTH = Object.freeze({ x: -7.5, z: 21.0 });
 // 進場步行路徑:場景就緒 2.5 秒後,從水源市場走廊沿人行道走到路緣站位
 // (讓使用者看得到走路,而非載入期間走完)。末點抄目前的 stand 崗位。
 function kbotEntryPath() {
+  // 兩個中繼點的 y 同樣是「實測地面 + KBOT_SOLE_OFFSET_M」(兩點都落在
+  // GongguanV52_PedestrianSidewalk_ShuiyuanCommercialEast_00,地面 0.2151)。
   return [
-    { x: -1.0, y: 0.24, z: 18.2 },
-    { x: 4.0, y: 0.24, z: 17.4 },
+    { x: -1.0, y: 0.219, z: 18.2 },
+    { x: 4.0, y: 0.219, z: 17.4 },
     { x: KBOT_STAND.x, y: KBOT_STAND.y, z: KBOT_STAND.z },
   ];
 }
@@ -650,7 +707,11 @@ let KBOT_ENTRY_DELAY_S = 2.5;
 // 依 speed / 設計速度 等比加快,腳掌才不會在地上打滑。
 let KBOT_WALK_DESIGN_SPEED = 0.85;
 let KBOT_WALK_SPEED = KBOT_WALK_DESIGN_SPEED;
-let KBOT_DUTY_SPEED = 1.35;
+// §26:1.35 → 1.45。加減速斜坡讓每趟勤務轉移多花約 0.45 s,實測 §16 的
+// 「站定指揮時間占比」因此掉 1.5 個百分點;把巡航速度提 7% 剛好把那段
+// 時間還回來。腳步播放率與速度等比,所以腳滑比例完全不受影響(實測
+// 沿軌滑移/身體速度的比值在 1.35 與 1.45 下相同)。
+let KBOT_DUTY_SPEED = 1.45;
 // 到崗後至少要站這麼久才值得走過去,否則直接在安全處指揮。
 // §16:4.0 → 3.0。巷90 崗位在標準節奏(16 s)下的預算是
 // 15.5 m / 1.35 = 11.5 s + dwell,4.0 只剩 0.5 s 餘裕、實測 300 s 內
@@ -722,7 +783,18 @@ function loadKbot() {
             // 樞紐上,肘部屈伸幾乎不改變它——量「手勢幅度」一定要看手掌。
             if (node.name.includes("visual_id26")) runtime.kbotHands.right = node;
             if (node.name.includes("visual_id61")) runtime.kbotHands.left = node;
+            // §26 步態量測:腳掌本體(id8 左 / id17 右)與兩顆緩衝膠囊。
+            // 名稱含 "FootBushing" 的三顆一組,合起來才是「腳」的包圍盒。
+            if (node.name.includes("LFootBushing")) {
+              runtime.kbotFootParts.left.push(node);
+              if (node.name.includes("visual_id8_")) runtime.kbotFeet.left = node;
+            }
+            if (node.name.includes("RFootBushing")) {
+              runtime.kbotFootParts.right.push(node);
+              if (node.name.includes("visual_id17_")) runtime.kbotFeet.right = node;
+            }
           }
+          if (node.name === "TrafficDirector_KBot_Root") runtime.kbotRootNode = node;
         });
         // 防呆:GLB 必須含步行循環視窗(時間軸 ≥ 1143/24 s),否則多半
         // 是瀏覽器抓到舊快取(immutable ?v= 未更新)——機器人會滑行而
@@ -2548,6 +2620,7 @@ function publishDebugState() {
           return target ? { x: target.x, z: target.z, id: target.id ?? null } : null;
         })(),
         reducedMotion: runtime.reducedMotion,
+        enabled: runtime.kbotEnabled,
         postPreview: runtime.kbotPostPreview,
         postEditId: runtime.kbotPostEditId,
         posts: structuredClone(KBOT_POSTS),
@@ -2594,6 +2667,18 @@ function publishDebugState() {
       ? runtime.kbotProbe.getWorldPosition(new THREE.Vector3()).toArray()
       : null
   );
+  // §26 機器人總開關 hook。
+  window.__kbotEnabled = () => runtime.kbotEnabled;
+  window.__setKbotEnabled = (enabled) => {
+    if (paramRegistry) {
+      paramRegistry.set("kbot.enabled", enabled ? 1 : 0);
+      paramRegistry.save();
+      syncParamRowsIfReady();
+    } else {
+      setKbotEnabled(enabled);
+    }
+    return runtime.kbotEnabled;
+  };
   // §18 崗位微調 hook:CDP 驗收不必操 DOM 也能改崗位/讀判定/取匯出片段。
   window.__kbotPosts = () => ({
     posts: structuredClone(KBOT_POSTS),
@@ -2607,9 +2692,9 @@ function publishDebugState() {
     for (const key of ["x", "y", "z"]) {
       if (patch[key] === undefined) continue;
       const range = KBOT_POST_RANGES[key];
-      KBOT_POSTS[id][key] = Math.round(THREE.MathUtils.clamp(
+      KBOT_POSTS[id][key] = quantizePostValue(key, THREE.MathUtils.clamp(
         Number(patch[key]), range.min, range.max,
-      ) * 100) / 100;
+      ));
     }
     if (id === runtime.kbotPostEditId) syncKbotPostInputs();
     onKbotPostsChanged();
@@ -2734,6 +2819,140 @@ function publishDebugState() {
       ];
     }
     return result;
+  };
+  // §26 步態量測 hook(唯讀)。一次回傳「這一幀」重建腳滑/轉身/起停/擺臂
+  // 所需的全部量,單位一律是模擬座標公尺:
+  //   holder      = 本體位置(s, y, t)
+  //   facingDeg   = 機器人正面在模擬座標的方位角(由兩腳連線解出,實測值,
+  //                 不是程式碼自己宣稱的值)
+  //   modelYawDeg = GLB root 節點當幀的建模朝向(手勢 45°、走路 135°)
+  //   footL/footR = 腳掌節點原點;soleL/soleR = 該腳三顆 mesh 的世界最低點
+  //   handL/handR = 手掌相對本體、且**已去掉 yaw** 的前後/左右/上下位移
+  const gaitScratch = new THREE.Vector3();
+  const gaitBox = new THREE.Box3();
+  const gaitInverse = new THREE.Matrix4();
+  const gaitEuler = new THREE.Euler();
+  const gaitToSim = (node) => {
+    node.getWorldPosition(gaitScratch).applyMatrix4(gaitInverse);
+    return [
+      Number(gaitScratch.x.toFixed(5)),
+      Number(gaitScratch.y.toFixed(5)),
+      Number(gaitScratch.z.toFixed(5)),
+    ];
+  };
+  const gaitSoleY = (nodes) => {
+    if (!nodes || nodes.length === 0) return null;
+    gaitBox.makeEmpty();
+    for (const node of nodes) gaitBox.expandByObject(node);
+    // simulationRoot 只有 z 鏡射,y 不變,所以世界 y 就是模擬 y。
+    return Number(gaitBox.min.y.toFixed(5));
+  };
+  window.__kbotGaitProbe = () => {
+    if (!runtime.kbotHolder || !runtime.kbotReady || !runtime.simulationRoot) return null;
+    gaitInverse.copy(runtime.simulationRoot.matrixWorld).invert();
+    const holder = runtime.kbotHolder.position;
+    const footL = runtime.kbotFeet.left ? gaitToSim(runtime.kbotFeet.left) : null;
+    const footR = runtime.kbotFeet.right ? gaitToSim(runtime.kbotFeet.right) : null;
+    let modelYawDeg = null;
+    if (runtime.kbotRootNode) {
+      gaitEuler.setFromQuaternion(runtime.kbotRootNode.quaternion, "YXZ");
+      modelYawDeg = Number(THREE.MathUtils.radToDeg(gaitEuler.y).toFixed(3));
+    }
+    // 正面在模擬座標的方位角。ψ = holder yaw + 建模朝向;正面 = −ψ
+    // (holder 在 z 鏡射父節點下,+yaw 在模擬座標是順時針)。
+    // 兩腳連線也能解朝向,但只在「站著」時可信——走路時兩腳前後錯開
+    // 0.56 m、側向只差 0.24 m,連線幾乎是前後向,量出來是垃圾。
+    const facingDeg = modelYawDeg === null ? null : Number(((() => {
+      let v = -(
+        THREE.MathUtils.radToDeg(runtime.kbotHolder.rotation.y) + modelYawDeg
+      ) % 360;
+      if (v > 180) v -= 360;
+      if (v < -180) v += 360;
+      return v;
+    })()).toFixed(3));
+    const footSepDeg = (footL && footR)
+      ? Number((
+        THREE.MathUtils.radToDeg(
+          Math.atan2(footR[2] - footL[2], footR[0] - footL[0]),
+        ) - 90
+      ).toFixed(3))
+      : null;
+    const localHand = (node) => {
+      if (!node) return null;
+      node.getWorldPosition(gaitScratch).applyMatrix4(gaitInverse);
+      const dx = gaitScratch.x - holder.x;
+      const dz = gaitScratch.z - holder.z;
+      // 去掉 holder yaw + 建模朝向,得到「相對本體」的前後(x)/左右(z)。
+      const psi = runtime.kbotHolder.rotation.y
+        + (modelYawDeg === null ? 0 : THREE.MathUtils.degToRad(modelYawDeg));
+      const cos = Math.cos(psi);
+      const sin = Math.sin(psi);
+      return [
+        Number((dx * cos - dz * sin).toFixed(5)),
+        Number(gaitScratch.y.toFixed(5)),
+        Number((dx * sin + dz * cos).toFixed(5)),
+      ];
+    };
+    return {
+      tS: performance.now() / 1000,
+      holder: [
+        Number(holder.x.toFixed(5)),
+        Number(holder.y.toFixed(5)),
+        Number(holder.z.toFixed(5)),
+      ],
+      holderYawDeg: Number(
+        THREE.MathUtils.radToDeg(runtime.kbotHolder.rotation.y).toFixed(3),
+      ),
+      yawTargetDeg: Number(
+        THREE.MathUtils.radToDeg(runtime.kbotYawTargetRad).toFixed(3),
+      ),
+      facingDeg,
+      footSepDeg,
+      modelYawDeg,
+      walkKind: runtime.kbotWalk.kind,
+      walkSpeed: runtime.kbotWalk.speed ?? null,
+      currentSpeed: Number((runtime.kbotWalk.currentSpeed ?? 0).toFixed(5)),
+      targetsLeft: runtime.kbotWalk.targets ? runtime.kbotWalk.targets.length : 0,
+      clipTimeS: Number(runtime.kbotSampleTimeS.toFixed(5)),
+      footL,
+      footR,
+      // soleL/R 只算腳掌本體 mesh(看得到的那顆);soleAllL/R 另含兩顆
+      // 緩衝膠囊(MuJoCo 的碰撞體,也在 GLB 裡而且會被畫出來)。
+      soleL: runtime.kbotFeet.left ? gaitSoleY([runtime.kbotFeet.left]) : null,
+      soleR: runtime.kbotFeet.right ? gaitSoleY([runtime.kbotFeet.right]) : null,
+      soleAllL: gaitSoleY(runtime.kbotFootParts.left),
+      soleAllR: gaitSoleY(runtime.kbotFootParts.right),
+      handL: localHand(runtime.kbotHands.left),
+      handR: localHand(runtime.kbotHands.right),
+    };
+  };
+  // §26 步態量測用的驅動 hook:讓驗收腳本能沿指定折線走(kind="probe" 不會
+  // 被勤務狀態機改道,也不會動 entryDone),用來做四個行進方向的 A/B。
+  window.__kbotWalkProbe = (points, speed = null) => {
+    if (!runtime.kbotHolder || !runtime.kbotReady) return false;
+    if (!Array.isArray(points) || points.length === 0) return false;
+    kbotStartWalk(
+      points.map((p) => ({ x: Number(p.x), y: Number(p.y), z: Number(p.z) })),
+      "probe",
+    );
+    if (Number.isFinite(speed)) runtime.kbotWalk.speed = Number(speed);
+    return true;
+  };
+  window.__kbotTeleportProbe = (point, facingDeg = null) => {
+    if (!runtime.kbotHolder || !runtime.kbotReady) return false;
+    runtime.kbotHolder.position.set(
+      Number(point.x), Number(point.y), Number(point.z),
+    );
+    runtime.kbotWalk.baseY = Number(point.y);
+    runtime.kbotWalk.targets = null;
+    runtime.kbotWalk.kind = null;
+    runtime.kbotWalk.currentSpeed = 0;
+    runtime.kbotWalk.entryDone = true;
+    if (Number.isFinite(facingDeg)) {
+      runtime.kbotFacingTargetRad = THREE.MathUtils.degToRad(Number(facingDeg));
+      runtime.kbotFacingRad = runtime.kbotFacingTargetRad;
+    }
+    return true;
   };
   // 驗證用相機 hook(唯讀腳本操作,不影響 UI 狀態)。
   // 契約:模擬座標進、同步瞬移生效、回傳 true。錄影腳本定位完立刻截圖,
@@ -2966,6 +3185,23 @@ function publishDebugState() {
     });
     return result;
   };
+  // §26 地面高度探針:從模擬座標 (s,t) 往下打射線,回傳實景 GLB 的最高
+  // 命中面 y 與節點名。崗位 y 到底該設多少,只有這支能給答案(舊值是
+  // 猜的,實測人行道 0.215、路面 0.0,機器人一直浮在空中)。
+  const groundRaycaster = new THREE.Raycaster();
+  const groundDown = new THREE.Vector3(0, -1, 0);
+  window.__groundHeightAt = (s, t) => {
+    if (!runtime.environment || !runtime.simulationRoot) return null;
+    groundRaycaster.set(simulationPoint(Number(s), 60, Number(t)), groundDown);
+    groundRaycaster.far = 200;
+    const hits = groundRaycaster.intersectObject(runtime.environment, true);
+    if (hits.length === 0) return null;
+    return {
+      y: Number(hits[0].point.y.toFixed(4)),
+      node: hits[0].object.name,
+      hits: hits.length,
+    };
+  };
   // 路口佔用診斷 hook:列出此刻讓 intersectionConflict() 為真的車輛。
   // 「清空相位一直等不到淨空」時,這是唯一能指認兇手的資料。
   window.__conflictVehicles = () => runtime.vehicles
@@ -2993,6 +3229,77 @@ function publishDebugState() {
     movement: node.userData.traffic_director_signal_movement,
     visible: node.visible,
   }));
+
+  // §24 真實資料層的驗收契約。CDP 腳本只讀這一支就能斷言「現在是哪個
+  // 來源、資料多舊、有沒有被標成過期、對應到哪台偵測器、實際生成幾輛車」。
+  window.__dataSource = () => {
+    const feed = runtime.dataFeed;
+    const simulation = feed?.simulation ?? null;
+    const detector = feed?.detectors?.[0] ?? null;
+    return {
+      sourceId: runtime.dataSourceId,
+      url: dataSourceUrl(),
+      schemaOk: Boolean(feed) && feed.schema === DATA_FEED_SCHEMA,
+      degraded: Boolean(feed?.degraded ?? (runtime.dataSourceId !== "synthetic" && !feed)),
+      trafficMode: runtime.trafficMode,
+      trafficModeBeforeLive: runtime.trafficModeBeforeLive,
+      kind: feed?.source?.kind ?? null,
+      label: feed?.source?.labelZhTw ?? null,
+      realtime: feed?.source?.realtime ?? null,
+      frameIndex: feed?.source?.frameIndex ?? null,
+      frameKind: feed?.source?.frameKind ?? null,
+      observedAt: feed?.observedAt ?? null,
+      generatedAt: feed?.generatedAt ?? null,
+      ageS: feed ? feedAgeS(feed) : null,
+      staleAfterS: feed?.staleAfterS ?? null,
+      stale: feed ? feedIsStale(feed) : null,
+      confidence: feed?.confidence?.level ?? null,
+      detector: detector
+        ? { id: detector.id, road: detector.roadZhTw, distanceM: detector.distanceM,
+            laneCount: detector.laneCount }
+        : null,
+      measurement: feed?.measurement ?? null,
+      budget: {
+        mainVehicleMin: simulation?.mainVehicleMin ?? null,
+        mainVehicleMax: simulation?.mainVehicleMax ?? null,
+        speedRangeMps: simulation?.speedRangeMps ?? null,
+        directionSplit: simulation?.directionSplit ?? null,
+        laneQuota: simulation?.laneQuota ?? null,
+        mix: simulation?.mix ?? null,
+      },
+      actual: {
+        mainVehicles: runtime.vehicles.filter((v) => !v.sideAccess).length,
+        sideVehicles: runtime.vehicles.filter((v) => v.sideAccess).length,
+        pedestrians: runtime.pedestrians.length,
+        // 實際落地的車道分佈,用來驗 laneQuota 真的有作用。
+        laneSpread: runtime.vehicles.reduce((out, vehicle) => {
+          if (vehicle.sideAccess) return out;
+          const key = vehicle.lanePosition ?? "unknown";
+          out[key] = (out[key] ?? 0) + 1;
+          return out;
+        }, {}),
+        typeSpread: runtime.vehicles.reduce((out, vehicle) => {
+          if (vehicle.sideAccess) return out;
+          out[vehicle.type] = (out[vehicle.type] ?? 0) + 1;
+          return out;
+        }, {}),
+      },
+      badge: ui.dataSourceBadge?.textContent ?? null,
+      badgeClass: ui.dataSourceBadge?.className ?? null,
+      note: ui.dataSourceNote?.hidden ? null : (ui.dataSourceNote?.textContent ?? null),
+      poll: {
+        polls: dataFeed.polls, applies: dataFeed.applies,
+        respawns: dataFeed.respawns, failures: dataFeed.failures,
+        lastError: dataFeed.lastError, intervalMs: dataFeed.backoffMs,
+        timerActive: dataFeed.timer !== null,
+      },
+      warnings: feed?.warnings ?? [],
+    };
+  };
+  window.__setDataSource = (id) => setDataSource(id);
+  window.__pollDataSource = () => pollDataFeedOnce();
+  // 純函式對外開一個口,方便在 CDP 裡直接驗映射公式。
+  window.__vdVolumeToPopulation = (input) => vdVolumeToPopulation(input);
 }
 
 function clearActors() {
@@ -3022,11 +3329,15 @@ function clearActors() {
 function spawnActors() {
   clearActors();
   const baseSeed = runtime.rules.simulation_constants.seed + runtime.seedOffset;
+  // §24:「即時」模式時,車種組成/方向比例/逐車道權重改由資料源決定。
+  // 非即時模式 live 為 null,呼叫參數與改動前完全相同。
+  const live = liveSpawnInputs();
   const plan = buildSpawnPlan(
     baseSeed,
-    runtime.rules.simulation_constants.vehicle_mix_project_assumption,
+    live?.mix ?? runtime.rules.simulation_constants.vehicle_mix_project_assumption,
     runtime.rules.simulation_constants.pedestrian_walk_speed_mps,
     runtime.trafficMode,
+    live?.options ?? {},
   );
   random = mulberry32(baseSeed ^ 0x9e3779b9);
   const palette = [
@@ -3125,7 +3436,12 @@ function robotSafeZone() {
   );
 }
 
+// §26:這是所有 KBot 安全耦合的單一收斂點(行人衝突、車流放行、碰撞
+// 計數、安全鎖 UI、站位標籤共 7 個下游全部經它)。所以「關掉機器人」
+// 只要在這裡多一行,號誌就會完全不受他影響——不能只把圖層藏起來,那樣
+// robotOnRoadway 仍為 true,相位會被鎖在 clearance 而且畫面上看不出原因。
 function robotOnRoadway() {
+  if (!runtime.kbotEnabled) return false;
   return Boolean(runtime.kbotHolder)
     && runtime.kbotReady
     && robotSafeZone() === null;
@@ -4176,6 +4492,8 @@ function updateSafetyUi() {
     && vehicleCrosswalkConflict()
   ) locks.push("行穿線尚未淨空 0.8 m");
   if (robotOnRoadway()) locks.push("KBot 於車道護送中");
+  // §26:這是狀態聲明不是鎖,但要讓使用者看得到「為什麼沒有機器人」。
+  const notices = runtime.kbotEnabled ? [] : ["純號誌模式:KBot 已停用"];
   // §18:崗位預覽會把 KBot 從勤務狀態機摘出來釘在崗位上,面板要交代
   // 「為什麼他不動了」。安全閘門本身沒有放寬。
   if (runtime.kbotPostPreview) locks.push("崗位預覽中:KBot 暫離勤務");
@@ -4185,23 +4503,23 @@ function updateSafetyUi() {
     && !robotOnRoadway()
   ) locks.push("行人占用衝突區");
   if (runtime.downstreamBlocked) locks.push("下游堵塞");
-  if (locks.length === 0) {
-    ui.safetyLocks.innerHTML = `
+  const safePill = `
       <span class="lock-pill is-safe">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
         安全閘門正常
       </span>`;
-  } else {
-    ui.safetyLocks.innerHTML = locks
-      .map(
-        (lock) => `
+  const noticePills = notices.map((notice) => `
+          <span class="lock-pill is-safe">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            ${notice}
+          </span>`).join("");
+  const lockPills = locks.map((lock) => `
           <span class="lock-pill is-blocked">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
             ${lock}
-          </span>`,
-      )
-      .join("");
-  }
+          </span>`).join("");
+  ui.safetyLocks.innerHTML = (locks.length === 0 ? safePill : lockPills)
+    + noticePills;
 }
 
 function syncSignalAspects() {
@@ -4249,7 +4567,7 @@ function syncKbotPose() {
   if (phaseChanged) runtime.kbotGestureClock = 0;
   runtime.kbotPosePhaseId = posePhaseId;
   if (!kbotWalking()) {
-    runtime.kbotYawTargetRad = kbotYawForPhase(posePhaseId);
+    runtime.kbotFacingTargetRad = kbotFacingForPhase(posePhaseId);
   }
   // Only re-pin the mixer on a phase change; continuous playback is
   // advanced every frame by updateKbotGestureAnimation.
@@ -4264,17 +4582,52 @@ function syncKbotPose() {
   setKbotMixerTime(sample.clipTimeS);
 }
 
-// 站上人行道後的朝向表。座標細節:simulationRoot 帶 z 鏡射,鏡射共軛
-// 會翻轉 y 軸旋轉方向,所以 holder.rotation.y = α 在模擬座標中把向量轉
-// -α:facing(α) = (sin α, -cos α)(α=0 面向 -t,即面向車道)。
-// 平時面向路口車流;放行巷90 時面向 -x(巷口來車)→ α = -π/2。
+// ---------------------------------------------------------------------------
+// §26 朝向:先算「模擬座標的方位角」,最後一步才換算成 holder.rotation.y。
+//
+// 舊版直接算 holder yaw = atan2(dx, −dz),手性是反的,而且完全沒有考慮
+// GLB 自帶的建模朝向,結果**朝向誤差隨行進方向改變**:沿人行道走(±s)
+// 偏 −135°(幾乎倒著走)、穿越馬路走(±t)偏 +45°(螃蟹走)。加常數
+// 偏移修不好,因為錯的是旋轉手性。
+//
+// 正確關係(全部實測驗證過):
+//   ψ = holder.rotation.y + ρ            ρ = GLB root 節點的建模朝向
+//   正面在模擬座標的方位角 φ = −ψ        (simulationRoot 帶 z 鏡射,
+//                                        +yaw 在模擬座標是順時針)
+//   ⇒ holder.rotation.y = −φ − ρ
+//
+// ρ 每幀現讀而不是寫死:烘焙的 root 旋轉軌其實是「手勢段 45°、
+// lane90_release 與步行段 135°」,但執行期實測恆為 45° —— 原因是
+// §13 的姿勢交叉淡入會直接寫 node.quaternion,而 three.js 的
+// PropertyMixer.apply() 只在「這一幀的值和上一幀不同」時才回寫場景,
+// root 在同一個相位窗內是常數,所以永遠不會被糾正回來。現讀的寫法對
+// 兩種情況都正確,而且將來 ρ 若真的動了也不會產生 90° 自旋(見
+// updateKbotYaw:被 slew 的是 φ 不是 holder yaw)。
+const kbotRootEuler = new THREE.Euler();
+function kbotModelYawRad() {
+  const node = runtime.kbotRootNode;
+  if (!node) return Math.PI / 4;
+  kbotRootEuler.setFromQuaternion(node.quaternion, "YXZ");
+  return kbotRootEuler.y;
+}
+
+// 方位角 → holder.rotation.y
+function kbotHolderYawFor(facingRad) {
+  return -facingRad - kbotModelYawRad();
+}
+
+// 目前實際面向的方位角。
+function kbotFacingNow() {
+  return -(runtime.kbotHolder.rotation.y + kbotModelYawRad());
+}
+
 // 朝向一律由「注視點」推算,崗位換了、避車處換了都自動正確。
-function kbotYawTowards(x, z) {
+function kbotFacingTowards(x, z) {
   const position = runtime.kbotHolder.position;
   const dx = x - position.x;
   const dz = z - position.z;
-  if (Math.hypot(dx, dz) < 0.05) return runtime.kbotYawTargetRad;
-  return Math.atan2(dx, -dz);
+  if (Math.hypot(dx, dz) < 0.05) return runtime.kbotFacingTargetRad;
+  return Math.atan2(dz, dx);
 }
 
 // 各相位的注視點:
@@ -4283,16 +4636,16 @@ function kbotYawTowards(x, z) {
 //                         行穿線,行人從他面前通過;
 //   其餘(羅斯福路放行 / 全停 / 清空)→ 路面中心線,身體與羅斯福路
 //     垂直,兩臂平伸才落在「前後停、左右行」的正確方位。
-function kbotYawForPhase(phaseId) {
+function kbotFacingForPhase(phaseId) {
   if (!runtime.kbotHolder) return 0;
   const position = runtime.kbotHolder.position;
   if (phaseId === "lane90_release") {
-    return kbotYawTowards(LANE90_MOUTH.x, LANE90_MOUTH.z);
+    return kbotFacingTowards(LANE90_MOUTH.x, LANE90_MOUTH.z);
   }
   if (phaseId === "pedestrian_crossing") {
-    return kbotYawTowards(position.x + 8, position.z);
+    return kbotFacingTowards(position.x + 8, position.z);
   }
-  return kbotYawTowards(position.x, 0);
+  return kbotFacingTowards(position.x, 0);
 }
 
 function normalizeAngle(radians) {
@@ -4302,22 +4655,33 @@ function normalizeAngle(radians) {
   return value;
 }
 
+// §26:2.2 → 2.8 rad/s。舊值的問題從來不是「轉太快」而是「目標一幀跳
+// 90°」,那一段已由前視注視點修掉;轉得俐落一點才不會邊轉邊被拖著走。
+let KBOT_TURN_RATE_RAD_S = 2.8;
+
+// §26:被 slew 的是「方位角 φ」而不是 holder yaw。差別在於建模朝向 ρ
+// 一旦變動(手勢段 45° ↔ 走路段 135°),holder yaw 必須當幀跳 90° 才能
+// 維持同一個朝向——如果 slew 的是 holder yaw,那 90° 就會變成 0.7 秒的
+// 原地自旋。
 function updateKbotYaw(delta) {
   if (!runtime.kbotHolder) return;
   if (!kbotWalking()) {
-    runtime.kbotYawTargetRad = kbotYawForPhase(runtime.kbotPosePhaseId);
+    runtime.kbotFacingTargetRad = kbotFacingForPhase(runtime.kbotPosePhaseId);
   }
-  const current = runtime.kbotHolder.rotation.y;
-  const target = runtime.kbotYawTargetRad;
+  const target = runtime.kbotFacingTargetRad;
   if (runtime.reducedMotion) {
-    runtime.kbotHolder.rotation.y = target;
-    return;
+    runtime.kbotFacingRad = target;
+  } else {
+    // 走最短角度,避免 atan2 跨 ±π 時繞遠路。
+    const current = kbotFacingNow();
+    const difference = normalizeAngle(target - current);
+    const maxStep = KBOT_TURN_RATE_RAD_S * delta;
+    runtime.kbotFacingRad = current
+      + THREE.MathUtils.clamp(difference, -maxStep, maxStep);
   }
-  // 走最短角度,避免 atan2 跨 ±π 時繞遠路。
-  const difference = normalizeAngle(target - current);
-  const maxStep = 2.2 * delta;
-  runtime.kbotHolder.rotation.y = current
-    + THREE.MathUtils.clamp(difference, -maxStep, maxStep);
+  runtime.kbotHolder.rotation.y = kbotHolderYawFor(runtime.kbotFacingRad);
+  // 既有 hook 契約:kbotYawTargetRad 仍是「holder 的目標 yaw」。
+  runtime.kbotYawTargetRad = kbotHolderYawFor(target);
 }
 
 // ---- KBot 勤務狀態機:進場走入 → 斑馬線旁站位;每個行人相位沿斑馬線
@@ -4328,16 +4692,57 @@ function kbotWalking() {
 }
 
 // 烘焙的步行循環是以 KBOT_WALK_DESIGN_SPEED 設計的,實際速度不同就
-// 等比調整播放速率(§13)。
+// 等比調整播放速率(§13)。§26:讀的是「當下實際速度」而不是目標速度,
+// 起步/煞車時腳步才會跟著由慢變快、由快變慢。下限 0.3 是為了不要在
+// 加速斜坡的頭 0.1 秒把腳完全定住(那看起來像卡住,不像起步)。
 function kbotGaitRate() {
-  return (runtime.kbotWalk.speed || KBOT_WALK_SPEED) / KBOT_WALK_DESIGN_SPEED;
+  const walk = runtime.kbotWalk;
+  const speed = walk.currentSpeed || walk.speed || KBOT_WALK_SPEED;
+  return Math.max(0.3, speed / KBOT_WALK_DESIGN_SPEED);
 }
 
+// §26 起停平滑。加速度 3.0 m/s²:0→1.35 m/s 需 0.45 s,和 §13 姿勢交叉
+// 淡入的 0.4 s 幾乎對齊;每段路程因此比等速多花 2×v/(2a) ≈ 0.45 s,
+// 仍在 §16 巷90 崗位 1.5 s 預算餘裕之內(所以 kbotTravelTimeS 不動)。
+let KBOT_WALK_ACCEL = 3.0;
+// 煞車比加速快一點:起步的柔順度是眼睛看得見的,到崗那一下有 gaitAmount
+// 收斂就夠了。§16 實測:1.8 太軟,每趟多花 0.38 s,累積起來讓「站定指揮」
+// 的時間占比掉 2.4 個百分點。
+let KBOT_WALK_DECEL = 3.0;
+// 轉彎減速:朝向誤差越大走越慢(cos 曲線)。下限 0.45 —— 0.2 太狠,一個
+// 90° 轉角會多花 0.5 s(同樣會吃掉 §16 的站崗時間占比),而且慢到接近
+// 停住反而不像人。
+let KBOT_TURN_SLOWDOWN_MIN = 0.45;
+// 朝向的前視距離:面向「路徑前方 0.9 m 處」而不是當前線段方向,折線
+// 轉角就變成連續的朝向斜坡,而不是一幀跳 90° 的砲塔式旋轉。路徑本身
+// 一點都沒動,所以 §16 的「踩在畫線上」比例不受影響。
+let KBOT_PATH_LOOKAHEAD_M = 0.9;
+// 走路時整個人要往下沉多少才踩得到地。烘焙循環是「基座 weld + 微蹲、
+// 腳全程離地」(SPEC_MUJOCO WALK_CYCLE),實測站立時腳底剛好在 holder
+// 原點,走路時最低的那隻腳卻還在原點上方 28.4 mm(中位)——不沉下去
+// 他就是在地面上飄著走。
+// = KBOT_SOLE_OFFSET_M(4 mm)+ 12 mm。後面那 12 mm 是「落地那一刻
+// (p10)剛好碰到地面」:實測烘焙循環裡『比較低的那隻腳』相對站崗姿勢
+// 還要再高 min 2 / p10 12 / 中位 30 / max 71 mm——這支 clip 根本沒有平坦
+// 的站立相(SPEC_MUJOCO:「基座 weld+微蹲使腳全程離地」),所以不可能
+// 每一相位都貼地;取 p10 讓落地瞬間對齊地面、最多只沉 1 cm。
+// 徹底解要重烘 WALK_CYCLE,見 SPEC_VIEWER_V2 §26 的「已知殘留」。
+let KBOT_WALK_GROUND_DROP_M = KBOT_SOLE_OFFSET_M + 0.012;
+
 function kbotStartWalk(targets, kind) {
-  runtime.kbotWalk.targets = targets.map((point) => ({ ...point }));
-  runtime.kbotWalk.kind = kind;
-  runtime.kbotWalk.clock = 0;
-  runtime.kbotWalk.speed = kind === "entry"
+  const walk = runtime.kbotWalk;
+  // §26:改道(走到一半相位變了)不重設步態時鐘與速度,否則每次改道
+  // 都會有一次「站定→重新起步」的頓挫,而且 clip 時間跳動 > 0.2 s 會
+  // 再觸發一次 0.4 s 的姿勢交叉淡入。
+  const continuing = Boolean(walk.targets);
+  walk.targets = targets.map((point) => ({ ...point }));
+  walk.kind = kind;
+  if (!continuing) {
+    walk.clock = 0;
+    walk.bobPhase = 0;
+    walk.currentSpeed = 0;
+  }
+  walk.speed = kind === "entry"
     ? KBOT_WALK_SPEED
     : KBOT_DUTY_SPEED;
 }
@@ -4352,13 +4757,50 @@ function kbotArrived() {
   const kind = walk.kind;
   walk.targets = null;
   walk.kind = null;
+  walk.currentSpeed = 0;
   if (kind === "entry") walk.entryDone = true;
-  runtime.kbotHolder.position.y = walk.baseY;
-  runtime.kbotYawTargetRad = kbotYawForPhase(runtime.kbotPosePhaseId);
+  // §26:不再硬寫 position.y。到崗前速度已經收斂到近乎 0,身體起伏與
+  // 下沉量也跟著收斂,剩下的殘差交給閒置分支的 0.12 s 收斂曲線。
+  runtime.kbotFacingTargetRad = kbotFacingForPhase(runtime.kbotPosePhaseId);
+}
+
+// 沿剩餘折線往前 aheadM 公尺的座標(用來當朝向的注視點)。
+function kbotPathLookahead(position, targets, aheadM) {
+  let remaining = aheadM;
+  let px = position.x;
+  let pz = position.z;
+  for (const target of targets) {
+    const dx = target.x - px;
+    const dz = target.z - pz;
+    const distance = Math.hypot(dx, dz);
+    if (distance < 1e-6) continue;
+    if (distance >= remaining) {
+      const k = remaining / distance;
+      return { x: px + dx * k, z: pz + dz * k };
+    }
+    remaining -= distance;
+    px = target.x;
+    pz = target.z;
+  }
+  return { x: px, z: pz };
+}
+
+// 剩餘路徑長度(用來算煞車曲線)。
+function kbotRemainingPathLength(position, targets) {
+  let length = 0;
+  let px = position.x;
+  let pz = position.z;
+  for (const target of targets) {
+    length += Math.hypot(target.x - px, target.z - pz);
+    px = target.x;
+    pz = target.z;
+  }
+  return length;
 }
 
 function updateKbotWalk(delta) {
   const walk = runtime.kbotWalk;
+  if (!runtime.kbotEnabled) return;
   if (!runtime.kbotHolder || !runtime.kbotReady) return;
   const position = runtime.kbotHolder.position;
   // 崗位預覽:接管勤務狀態機,把 KBot 釘在「目前選中的崗位」上,拖滑桿
@@ -4370,8 +4812,9 @@ function updateKbotWalk(delta) {
     walk.baseY = post.y;
     walk.targets = null;
     walk.kind = null;
+    walk.currentSpeed = 0;
     walk.entryDone = true;
-    runtime.kbotYawTargetRad = kbotYawForPhase(runtime.kbotPosePhaseId);
+    runtime.kbotFacingTargetRad = kbotFacingForPhase(runtime.kbotPosePhaseId);
     return;
   }
   if (runtime.reducedMotion) {
@@ -4381,7 +4824,8 @@ function updateKbotWalk(delta) {
       walk.entryDone = true;
       walk.targets = null;
       walk.kind = null;
-      runtime.kbotYawTargetRad = kbotYawForPhase(runtime.kbotPosePhaseId);
+      walk.currentSpeed = 0;
+      runtime.kbotFacingTargetRad = kbotFacingForPhase(runtime.kbotPosePhaseId);
     }
     return;
   }
@@ -4398,7 +4842,28 @@ function updateKbotWalk(delta) {
         kbotStartWalk(kbotRouteTo(desired), "duty");
       }
     }
-    let remaining = (walk.speed || KBOT_WALK_SPEED) * delta;
+    // ---- §26 朝向:面向路徑前方 KBOT_PATH_LOOKAHEAD_M 公尺處 ----
+    const ahead = kbotPathLookahead(position, walk.targets, KBOT_PATH_LOOKAHEAD_M);
+    const aheadDx = ahead.x - position.x;
+    const aheadDz = ahead.z - position.z;
+    if (Math.hypot(aheadDx, aheadDz) > 1e-4) {
+      runtime.kbotFacingTargetRad = Math.atan2(aheadDz, aheadDx);
+    }
+    // ---- §26 速度:加速度斜坡 + 煞車曲線 + 轉彎減速 ----
+    const pathLeft = kbotRemainingPathLength(position, walk.targets);
+    const cruise = walk.speed || KBOT_WALK_SPEED;
+    const yawError = normalizeAngle(
+      runtime.kbotFacingTargetRad - kbotFacingNow(),
+    );
+    const turnFactor = Math.max(KBOT_TURN_SLOWDOWN_MIN, Math.cos(yawError));
+    const braking = Math.sqrt(2 * KBOT_WALK_DECEL * Math.max(0, pathLeft));
+    const wanted = Math.min(cruise * turnFactor, braking);
+    const rate = wanted > walk.currentSpeed ? KBOT_WALK_ACCEL : KBOT_WALK_DECEL;
+    walk.currentSpeed += THREE.MathUtils.clamp(
+      wanted - walk.currentSpeed, -rate * delta, rate * delta,
+    );
+    walk.currentSpeed = Math.max(0, walk.currentSpeed);
+    let remaining = Math.max(walk.currentSpeed * delta, 1e-4);
     while (remaining > 0 && walk.targets.length > 0) {
       const target = walk.targets[0];
       const dx = target.x - position.x;
@@ -4416,19 +4881,27 @@ function updateKbotWalk(delta) {
       position.x += dx * step;
       position.z += dz * step;
       walk.baseY += (target.y - walk.baseY) * step;
-      // 面向行進方向:facing(α) = (sin α, -cos α) ⇒ α = atan2(dx, -dz)。
-      // (鏡射父節點使 +yaw 在模擬座標為 -α 旋轉;之前用 atan2(-dx,-dz)
-      // 會在 ±x 向路段側著走。)
-      runtime.kbotYawTargetRad = Math.atan2(dx, -dz);
       remaining = 0;
     }
     if (walk.targets && walk.targets.length === 0) {
       kbotArrived();
       return;
     }
+    // 身體起伏與「踩到地面」的下沉量都跟著實際速度收放,起步/停步就
+    // 不會有那一下 ±2 cm 的彈跳。
+    const gaitAmount = Math.min(1, walk.currentSpeed / KBOT_WALK_DESIGN_SPEED);
     walk.bobPhase += delta * 4.7 * kbotGaitRate();
-    position.y = walk.baseY + Math.abs(Math.sin(walk.bobPhase)) * 0.025;
+    position.y = walk.baseY
+      - KBOT_WALK_GROUND_DROP_M * gaitAmount
+      + Math.abs(Math.sin(walk.bobPhase)) * 0.025 * gaitAmount;
     return;
+  }
+
+  // 到崗後把身體高度平滑收回崗位基準(舊版是到崗當幀硬寫,實測會有
+  // 一次 9~20 mm 的跳動)。
+  if (Math.abs(position.y - walk.baseY) > 1e-4) {
+    position.y += (walk.baseY - position.y)
+      * Math.min(1, delta / 0.12);
   }
 
   // ---- 閒置決策:依相位走到對應崗位 ----
@@ -4452,7 +4925,11 @@ function kbotTravelTimeS(from, to) {
     length += Math.hypot(point.x - previous.x, point.z - previous.z);
     previous = point;
   }
-  return length / KBOT_DUTY_SPEED;
+  // §26:起步/煞車斜坡各比等速多花 v/(2a) 秒。預算不算進去就會系統性
+  // 低估 0.4 秒,走到一半才發現來不及(§16 就是踩過這種預算不準的坑)。
+  return length / KBOT_DUTY_SPEED
+    + KBOT_DUTY_SPEED / (2 * KBOT_WALK_ACCEL)
+    + KBOT_DUTY_SPEED / (2 * KBOT_WALK_DECEL);
 }
 
 // 最近的避車處(人行道轉角),回傳 holder 座標。
@@ -4579,6 +5056,7 @@ function applyKbotPoseBlend(delta) {
 }
 
 function updateKbotGestureAnimation(delta) {
+  if (!runtime.kbotEnabled) return;
   updateKbotWalk(delta);
   updateKbotYaw(delta);
   if (
@@ -4631,6 +5109,7 @@ function updateKbotGestureAnimation(delta) {
 
 // 目前 KBot 站在哪裡(給面板與錄影字卡看)。
 function kbotStationLabel() {
+  if (!runtime.kbotEnabled) return "已停用";
   if (!runtime.kbotHolder || !runtime.kbotReady) return "進場中";
   if (kbotWalking()) return "移動中";
   const position = runtime.kbotHolder.position;
@@ -4654,6 +5133,7 @@ function simulationPointFast(x, y, z, target) {
 const lightScratch = new THREE.Vector3();
 
 function updateKbotLights() {
+  if (!runtime.kbotEnabled) return;
   if (!runtime.kbotRim || !runtime.kbotHolder || !runtime.kbotReady) return;
   const position = runtime.kbotHolder.position;
   runtime.kbotRim.position.copy(simulationPointFast(
@@ -4870,8 +5350,20 @@ function onKbotPostsChanged() {
   }
 }
 
-function formatPostNumber(value) {
-  return Number(value).toFixed(2);
+// 崗位座標的量化精度(§27)。y 軸是實測腳底高度(0.217 / 0.224),公釐級;
+// 原本 x/y/z 一律 Math.round(v*100)/100 會把 y 吸到 0.22,造成三個後果:
+// resetAll 之後仍有 2 列顯示「已修改」、localStorage 存進錯的值、
+// __paramCode() 匯出時把它當成使用者覆寫並寫錯數字。
+const KBOT_POST_STEP = Object.freeze({ x: 0.01, y: 0.001, z: 0.01 });
+
+function quantizePostValue(axis, value) {
+  const step = KBOT_POST_STEP[axis] ?? 0.01;
+  return Math.round(Number(value) / step) * step;
+}
+
+function formatPostNumber(value, axis = "x") {
+  const digits = (KBOT_POST_STEP[axis] ?? 0.01) < 0.01 ? 3 : 2;
+  return Number(Number(value).toFixed(digits));
 }
 
 // 可以直接貼回 traffic_director.js 的 KBOT_POSTS_DEFAULT 字面量。
@@ -4880,9 +5372,9 @@ function kbotPostExportCode() {
     const post = KBOT_POSTS[id];
     return `  ${id}: Object.freeze({\n`
       + `    id: "${post.id}", label: "${post.label}",`
-      + ` x: ${formatPostNumber(post.x)},`
-      + ` y: ${formatPostNumber(post.y)},`
-      + ` z: ${formatPostNumber(post.z)},\n`
+      + ` x: ${formatPostNumber(post.x, "x")},`
+      + ` y: ${formatPostNumber(post.y, "y")},`
+      + ` z: ${formatPostNumber(post.z, "z")},\n`
       + "  }),";
   }).join("\n");
   return [
@@ -4948,6 +5440,45 @@ function setKbotPostPreview(enabled) {
   onKbotPostsChanged();
   if (!runtime.kbotPostPreview) updateKbotPostMarkers();
   updateSafetyUi();
+}
+
+// ---------------------------------------------------------------------------
+// §26「交通指揮機器人」總開關(san:「我需要可以把機器人先關掉的按鈕」)
+//
+// 關掉 = 純號誌模式。刻意**不做**的三件事:
+//   (a) 不跳過 loadKbot():refreshModelStatus() 需要 kbotReady 才會離開
+//       is-loading,而「#modelStatus 沒有 is-loading」正是 CDP 的載入判準。
+//       模型照載、照進場景,只是 visible=false 而且行為全部停擺。
+//   (b) 不刪 #layer-kbot、不動 [data-camera="robot"] 與 [data-camera-mode]
+//       (硬規則 7)。相機按鈕按下去會 graceful 退回 orbit + 提示。
+//   (c) 不改任何相位/手勢決策——手勢是相位的顯示層,本來就不是從機器人
+//       讀出來的,所以號誌照跑。
+// ---------------------------------------------------------------------------
+function setKbotEnabled(enabled, options = {}) {
+  const next = Boolean(enabled);
+  const changed = runtime.kbotEnabled !== next;
+  runtime.kbotEnabled = next;
+  if (!next) {
+    // 崗位微調會把 KBot 釘到崗位上並重新觸發安全鎖,停用時一併關掉。
+    if (runtime.kbotPostPreview) setKbotPostPreview(false);
+    if (cameraDirector.mode === "follow") {
+      setCameraMode("orbit", { fly: options.fly !== false });
+    }
+  }
+  if (ui.kbotEnabled) ui.kbotEnabled.checked = next;
+  if (ui.kbotDisabledChip) ui.kbotDisabledChip.hidden = next;
+  if (ui.kbotPostGroup) {
+    ui.kbotPostGroup.hidden = !next;
+    if (!next) ui.kbotPostGroup.open = false;
+  }
+  document.body.classList.toggle("is-no-controller", !next);
+  applySceneLayer("kbot");
+  updateKbotPostMarkers();
+  refreshLayerCounts();
+  syncCameraModeButtons();
+  updateSafetyUi();
+  if (changed) enforceActiveSafety();
+  return runtime.kbotEnabled;
 }
 
 function setupKbotPostEditor() {
@@ -5143,11 +5674,11 @@ function kbotPostParam(postId, axis, label) {
     unit: "m",
     min: range.min,
     max: range.max,
-    step: 0.01,
+    step: KBOT_POST_STEP[axis] ?? 0.01,
     apply: "live",
     get: () => KBOT_POSTS[postId][axis],
     set: (v) => {
-      KBOT_POSTS[postId][axis] = Math.round(v * 100) / 100;
+      KBOT_POSTS[postId][axis] = quantizePostValue(axis, v);
       if (postId === runtime.kbotPostEditId) syncKbotPostInputs();
       onKbotPostsChanged();
     },
@@ -5209,6 +5740,12 @@ function viewerParamDefs() {
     },
 
     {
+      id: "kbot.enabled", group: "kbot", label: "交通指揮機器人",
+      unit: "", kind: "toggle", min: 0, max: 1, step: 1, apply: "live",
+      get: () => (runtime.kbotEnabled ? 1 : 0),
+      set: (v) => { setKbotEnabled(v >= 0.5, { fly: false }); },
+    },
+    {
       id: "kbot.walkSpeed", group: "kbot", label: "走路速度",
       unit: "m/s", min: 0.2, max: 3, step: 0.05, apply: "live",
       get: () => KBOT_WALK_SPEED, set: (v) => { KBOT_WALK_SPEED = v; },
@@ -5217,6 +5754,32 @@ function viewerParamDefs() {
       id: "kbot.dutySpeed", group: "kbot", label: "勤務轉移速度",
       unit: "m/s", min: 0.2, max: 4, step: 0.05, apply: "live",
       get: () => KBOT_DUTY_SPEED, set: (v) => { KBOT_DUTY_SPEED = v; },
+    },
+    {
+      id: "kbot.walkAccel", group: "kbot", label: "起步加速度",
+      unit: "m/s²", min: 0.5, max: 12, step: 0.1, apply: "live",
+      get: () => KBOT_WALK_ACCEL, set: (v) => { KBOT_WALK_ACCEL = v; },
+    },
+    {
+      id: "kbot.walkDecel", group: "kbot", label: "到崗煞車減速度",
+      unit: "m/s²", min: 0.3, max: 12, step: 0.1, apply: "live",
+      get: () => KBOT_WALK_DECEL, set: (v) => { KBOT_WALK_DECEL = v; },
+    },
+    {
+      id: "kbot.turnRate", group: "kbot", label: "轉身角速度",
+      unit: "rad/s", min: 0.4, max: 8, step: 0.1, apply: "live",
+      get: () => KBOT_TURN_RATE_RAD_S, set: (v) => { KBOT_TURN_RATE_RAD_S = v; },
+    },
+    {
+      id: "kbot.pathLookahead", group: "kbot", label: "轉彎前視距離",
+      unit: "m", min: 0, max: 4, step: 0.05, apply: "live",
+      get: () => KBOT_PATH_LOOKAHEAD_M, set: (v) => { KBOT_PATH_LOOKAHEAD_M = v; },
+    },
+    {
+      id: "kbot.walkGroundDrop", group: "kbot", label: "走路踩地下沉量",
+      unit: "m", min: 0, max: 0.1, step: 0.001, apply: "live", calib: true,
+      get: () => KBOT_WALK_GROUND_DROP_M,
+      set: (v) => { KBOT_WALK_GROUND_DROP_M = v; },
     },
     {
       id: "kbot.postMinDwell", group: "kbot", label: "值得走過去的最短駐留",
@@ -5381,6 +5944,8 @@ function paramDisplayValue(def) {
   if (def.kind === "color") {
     return `#${Math.round(value).toString(16).padStart(6, "0")}`;
   }
+  // §26:0/1 的開關型參數在讀數欄顯示「開/關」而不是 1/0。
+  if (def.kind === "toggle") return value >= 0.5 ? "開" : "關";
   const decimals = def.step >= 1 ? 0 : (def.step >= 0.1 ? 1 : 2);
   return `${value.toFixed(decimals)}${def.unit ? ` ${def.unit}` : ""}`;
 }
@@ -5703,6 +6268,19 @@ function setupUiEvents() {
   ui.motionEffects.addEventListener("change", () => {
     runtime.reducedMotion = !ui.motionEffects.checked;
   });
+  // §26 機器人總開關。走 paramRegistry 是刻意的:這樣「記住上次選擇」
+  // 由 §19 的 localStorage 一併處理,不必再發明第二套持久化機制。
+  if (ui.kbotEnabled) {
+    ui.kbotEnabled.addEventListener("change", () => {
+      if (paramRegistry) {
+        paramRegistry.set("kbot.enabled", ui.kbotEnabled.checked ? 1 : 0);
+        paramRegistry.save();
+        syncParamRowsIfReady();
+      } else {
+        setKbotEnabled(ui.kbotEnabled.checked);
+      }
+    });
+  }
   ui.highPerformance.addEventListener("change", () => {
     applyRenderProfile(
       ui.highPerformance.checked ? "performance" : "powersave",
@@ -5733,11 +6311,19 @@ function setupUiEvents() {
   syncDurationOutputs();
   bindSegmented(ui.pacingSegmented, ui.pacingPreset, "pacing");
   bindSegmented(ui.densitySegmented, ui.trafficDensity, "density");
+  setupDataSourceUi();
   setupKbotPostEditor();
   ui.trafficDensity.addEventListener("change", () => {
     // Mode switch = regenerate with the current seed (reseed flow without
     // bumping the seed offset), per SPEC_VIEWER_V2 §4c.
     runtime.trafficMode = ui.trafficDensity.value;
+    // §24:手動挑檔位 = 把控制權從資料源拿回來。否則下一次輪詢又會把
+    // 模式推回「即時」,使用者會覺得按鈕壞了。
+    if (runtime.trafficMode !== "live"
+      && runtime.dataSourceId !== "synthetic"
+      && !dataFeed.autoFallback) {
+      setDataSource("synthetic", { poll: false });
+    }
     resetRunCounters();
     spawnActors();
   });
@@ -6346,8 +6932,19 @@ function selectCameraTarget(target) {
 }
 
 // ------------------------------------------------------------- 模式 / 投影
+// §26:機器人停用時「跟隨」沒有跟隨對象。六顆 [data-camera] 與四個
+// [data-camera-mode] 一律保留(硬規則 7),只是 follow / robot 會 graceful
+// 退回 orbit + overview 並跳提示,而不是靜默不動。
+function cameraModeAvailable(mode) {
+  return mode !== "follow" || runtime.kbotEnabled;
+}
+
 function setCameraMode(mode, options = {}) {
   if (!CAMERA_MODES[mode]) return false;
+  if (!cameraModeAvailable(mode)) {
+    showCameraNotice("純號誌模式:沒有指揮者可跟隨,改用 Orbit 自由視角");
+    return setCameraMode("orbit", options);
+  }
   cameraDirector.mode = mode;
   cameraDirector.followReady = false;
   applyCameraModeConstraints();
@@ -6502,11 +7099,17 @@ function cameraPresetPose(name) {
 }
 
 function applyCameraPreset(name, options = {}) {
-  const key = CAMERA_PRESET_MODES[name] ? name : "overview";
+  let key = CAMERA_PRESET_MODES[name] ? name : "overview";
+  // §26:robot 預設視角在純號誌模式退回 overview(按鈕保留、不消失)。
+  if (!cameraModeAvailable(CAMERA_PRESET_MODES[key])) {
+    showCameraNotice("純號誌模式:沒有指揮者可跟隨,改用總覽視角");
+    key = "overview";
+  }
   const pose = cameraPresetPose(key);
   cameraDirector.preset = key;
   if (options.keepMode !== true) {
-    const mode = CAMERA_PRESET_MODES[key] ?? "orbit";
+    const wanted = CAMERA_PRESET_MODES[key] ?? "orbit";
+    const mode = cameraModeAvailable(wanted) ? wanted : "orbit";
     cameraDirector.mode = mode;
     cameraDirector.followReady = false;
     // 這裡**不要**套 applyCameraModeConstraints():過渡還沒開始就換上目的地
@@ -6979,6 +7582,13 @@ function applySceneLayer(id) {
     updateKbotPostMarkers();
     return;
   }
+  if (id === "kbot") {
+    // §26:圖層開關與「機器人總開關」是兩層 AND(和 markings 同款)。
+    if (runtime.kbotHolder) {
+      runtime.kbotHolder.visible = visible && runtime.kbotEnabled;
+    }
+    return;
+  }
   if (id === "pedestrians") {
     // 已上車的乘客要維持隱藏(人在公車上),不能被圖層開關無條件掀出來。
     for (const pedestrian of runtime.pedestrians ?? []) {
@@ -7213,6 +7823,482 @@ function initThree() {
   clock = new THREE.Clock();
 }
 
+// ---------------------------------------------------------------------------
+// §24 真實資料層(viewer 段)
+//
+// 契約:viewer 只認 data/SCHEMA.md 的 `gongguan.intersection.state.v1`,
+// **完全不管資料哪來**。四種來源(synthetic / replay / tdx / file)都是
+// data/ingest.py 寫出來的同一種 JSON;使用者自架的端點也只要吐同一份形狀。
+//
+// 三條硬性行為:
+//   1. 抓不到、逾時、schema 不符、degraded → 靜默退回 synthetic,
+//      場景不空、不報錯(硬規則 2)。所有例外只 console.warn。
+//   2. 過期資料一定標紅。staleAfterS === 0 的來源(歷史快照 / 合成)
+//      **永遠**標成非即時 —— 絕不能讓人以為畫面是即時的。
+//   3. 輪詢用獨立 setInterval,不掛 rAF —— animate() 在 document.hidden
+//      時直接 return,掛上去分頁一隱藏就整個停住。
+// ---------------------------------------------------------------------------
+
+const DATA_FEED_SCHEMA = "gongguan.intersection.state.v1";
+const DATA_FEED_SOURCES = Object.freeze({
+  synthetic: Object.freeze({ label: "合成", url: null }),
+  replay: Object.freeze({ label: "重播", url: "../data/live/replay.json" }),
+  tdx: Object.freeze({ label: "TDX", url: "../data/live/tdx.json" }),
+  file: Object.freeze({ label: "檔案", url: "../data/live/custom.json" }),
+});
+// 15 秒:凍結快照的 TimeInterval 是 300 秒、TDX Live VD 是 60 秒、
+// replay 每 20 秒換一個 frame。15 秒不會漏掉 frame 也不會狂打檔案。
+const DATA_FEED_POLL_MS = 15000;
+const DATA_FEED_TIMEOUT_MS = 4000;
+const DATA_FEED_MAX_FAILURES = 3;
+const DATA_FEED_MAX_BACKOFF_MS = 300000;
+// 超過 10 分鐘就額外標「歷史資料」(任務要求)。
+const DATA_FEED_HISTORY_S = 600;
+const DATA_FEED_URL_STORAGE_KEY = "gongguan.liveFeedUrl";
+
+const dataFeed = {
+  timer: null,
+  inFlight: false,
+  failures: 0,
+  backoffMs: DATA_FEED_POLL_MS,
+  fetchedAtMs: 0,
+  lastOkAtMs: 0,
+  lastError: null,
+  lastUrl: null,
+  signature: null,
+  savedSpeedRange: null,
+  customUrl: "",
+  autoFallback: false,
+  rerunRequested: false,
+  polls: 0,
+  applies: 0,
+  respawns: 0,
+};
+
+function dataSourceUrl(sourceId = runtime.dataSourceId) {
+  if (sourceId === "synthetic") return null;
+  // 優先序:?live= 覆寫 > 使用者在 UI 打的位址(file 來源) > 預設落點。
+  // 這一支同時滿足硬規則 2 的三種部署:本機 ingest 寫檔、GH Action commit
+  // 的檔、以及使用者自架的 HTTP 端點。
+  let override = "";
+  try {
+    override = new URLSearchParams(location.search).get("live") ?? "";
+  } catch { override = ""; }
+  if (override) return override;
+  if (sourceId === "file" && dataFeed.customUrl) return dataFeed.customUrl;
+  return DATA_FEED_SOURCES[sourceId]?.url ?? null;
+}
+
+// schema 用 null 表示「這個來源量不到這一項」。Number(null) === 0 而
+// Number.isFinite(0) === true —— 直接用 Number.isFinite 會把「沒資料」
+// 讀成「量到 0」,行人與巷90 車流會被歸零。這一支就是為了擋掉那件事。
+function finiteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function feedAgeS(feed) {
+  const observed = Date.parse(feed?.observedAt ?? "");
+  if (!Number.isFinite(observed)) return null;
+  return Math.max(0, Math.round((Date.now() - observed) / 1000));
+}
+
+// 過期判定。staleAfterS === 0 是「這份資料本來就不宣稱即時」的明示訊號
+// (歷史快照與合成都用 0),一律回 true。
+function feedIsStale(feed) {
+  if (!feed) return true;
+  const limit = Number(feed.staleAfterS);
+  if (!Number.isFinite(limit) || limit <= 0) return true;
+  const age = feedAgeS(feed);
+  return age === null || age > limit;
+}
+
+function formatAge(seconds) {
+  if (seconds === null || !Number.isFinite(seconds)) return "—";
+  if (seconds < 90) return `${seconds} 秒前`;
+  if (seconds < 5400) return `${Math.round(seconds / 60)} 分前`;
+  if (seconds < 172800) return `${Math.round(seconds / 3600)} 小時前`;
+  return `${Math.round(seconds / 86400)} 天前`;
+}
+
+async function fetchDataFeed() {
+  const url = dataSourceUrl();
+  dataFeed.lastUrl = url;
+  if (!url) throw new Error("此來源不讀外部資料");
+  const separator = url.includes("?") ? "&" : "?";
+  // GitHub Pages 對 .json 不送 no-cache,所以時間戳是必要的
+  // (本機 serve.py 已經送了,加上也無害)。
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DATA_FEED_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${url}${separator}t=${Date.now()}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    if (payload?.schema !== DATA_FEED_SCHEMA) {
+      throw new Error(`schema 不符:${payload?.schema ?? "(無)"}`);
+    }
+    return payload;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// 生成參數的指紋。只有指紋變了才重生 —— 每 15 秒整場重生會很難看,
+// 而且會把 throughput / collisions 計數洗掉。
+function spawnSignature(simulation) {
+  return JSON.stringify([
+    simulation.mainVehicleMin,
+    simulation.mainVehicleMax,
+    simulation.pedestrianMin,
+    simulation.pedestrianMax,
+    simulation.sideVehiclesPerColumn,
+    simulation.mix,
+    simulation.directionSplit,
+    simulation.laneQuota,
+  ]);
+}
+
+// 目前該用哪一組生成輸入。非「即時」模式一律回 null,走既有路徑。
+function liveSpawnInputs() {
+  if (runtime.trafficMode !== "live") return null;
+  const simulation = runtime.dataFeed?.simulation;
+  if (!simulation) return null;
+  const options = {};
+  const split = finiteNumber(simulation.directionSplit);
+  if (split !== null) options.directionSplit = split;
+  if (simulation.laneQuota && typeof simulation.laneQuota === "object") {
+    options.laneQuota = simulation.laneQuota;
+  }
+  const mix = simulation.mix && typeof simulation.mix === "object"
+    ? simulation.mix
+    : null;
+  return { mix, options };
+}
+
+function applyDataFeed(feed) {
+  const simulation = feed?.simulation ?? null;
+  const mainMin = finiteNumber(simulation?.mainVehicleMin);
+  const mainMax = finiteNumber(simulation?.mainVehicleMax);
+  const usable = Boolean(feed) && !feed.degraded && Boolean(simulation)
+    && mainMin !== null && mainMax !== null;
+  runtime.dataFeed = feed ?? null;
+  if (!usable) {
+    leaveLiveMode();
+    updateDataSourceUi();
+    return false;
+  }
+
+  const patch = { mainVehicleMin: mainMin, mainVehicleMax: mainMax };
+  // null 代表「這個來源量不到」(例如 VD 不量行人),沿用目前模式的值,
+  // 絕不從車流量推估再假裝是量測,也絕不把「沒資料」當成「量到 0」。
+  const pedestrianMin = finiteNumber(simulation.pedestrianMin);
+  const pedestrianMax = finiteNumber(simulation.pedestrianMax);
+  const sidePerColumn = finiteNumber(simulation.sideVehiclesPerColumn);
+  if (pedestrianMin !== null) patch.pedestrianMin = pedestrianMin;
+  if (pedestrianMax !== null) patch.pedestrianMax = pedestrianMax;
+  if (sidePerColumn !== null) patch.sideVehiclesPerColumn = sidePerColumn;
+  applyLiveTrafficBudget(patch);
+
+  const speedRange = simulation.speedRangeMps;
+  if (Array.isArray(speedRange) && speedRange.length === 2) {
+    const previous = applyLiveSpeedRange(speedRange[0], speedRange[1]);
+    if (!dataFeed.savedSpeedRange) dataFeed.savedSpeedRange = previous;
+  }
+
+  // 生成指紋:只有「這一批車會長得不一樣」時才重生。每 15 秒整場重生
+  // 會很難看,也會把 throughput / collisions 計數洗掉。
+  const signature = spawnSignature(simulation);
+  if (runtime.trafficMode !== "live") {
+    runtime.trafficModeBeforeLive = runtime.trafficMode;
+    // 切檔位本身就會重生一輪(而且此時預算與車速都已經套好了),
+    // 所以先把指紋記起來,免得緊接著又重生第二次。
+    dataFeed.signature = signature;
+    dataFeed.respawns += 1;
+    setTrafficMode("live", { respawn: true });
+  } else if (signature !== dataFeed.signature) {
+    dataFeed.signature = signature;
+    dataFeed.respawns += 1;
+    resetRunCounters();
+    spawnActors();
+  }
+  dataFeed.applies += 1;
+  updateDataSourceUi();
+  return true;
+}
+
+// 退回合成:還原車速、還原「即時」模式的預算,並把車流檔位切回進場前的值。
+function leaveLiveMode() {
+  if (dataFeed.savedSpeedRange) {
+    applyLiveSpeedRange(
+      dataFeed.savedSpeedRange.min, dataFeed.savedSpeedRange.max,
+    );
+    dataFeed.savedSpeedRange = null;
+  }
+  resetLiveTrafficBudget();
+  dataFeed.signature = null;
+  if (runtime.trafficMode === "live") {
+    // 自動退場時**不可**順手把來源切成「合成」:那會停掉輪詢,資料回來
+    // 也不會自己復原。使用者手動挑檔位才算「把控制權拿回去」。
+    dataFeed.autoFallback = true;
+    try {
+      setTrafficMode(runtime.trafficModeBeforeLive || "normal", { respawn: true });
+    } finally {
+      dataFeed.autoFallback = false;
+    }
+  }
+}
+
+// 車流檔位的單一入口,讓 select / segmented / 資料層三邊永遠同步。
+function setTrafficMode(mode, { respawn = true } = {}) {
+  runtime.trafficMode = mode;
+  if (ui.trafficDensity && ui.trafficDensity.value !== mode) {
+    ui.trafficDensity.value = mode;
+    ui.trafficDensity.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
+  syncDensitySegmented();
+  if (respawn) {
+    resetRunCounters();
+    spawnActors();
+  }
+}
+
+function syncDensitySegmented() {
+  if (!ui.densitySegmented) return;
+  for (const button of ui.densitySegmented.querySelectorAll("button")) {
+    button.classList.toggle(
+      "is-active", button.dataset.density === runtime.trafficMode,
+    );
+  }
+}
+
+async function pollDataFeedOnce() {
+  // 已經有一發在飛時不重複打,但要記得補跑 —— 否則使用者剛改的位址
+  // 會被丟掉,要等下一個輪詢週期才生效(看起來就像「按了沒反應」)。
+  if (dataFeed.inFlight) {
+    dataFeed.rerunRequested = true;
+    return false;
+  }
+  if (runtime.dataSourceId === "synthetic") return false;
+  dataFeed.inFlight = true;
+  dataFeed.polls += 1;
+  try {
+    const feed = await fetchDataFeed();
+    dataFeed.fetchedAtMs = Date.now();
+    dataFeed.lastOkAtMs = Date.now();
+    dataFeed.failures = 0;
+    dataFeed.lastError = null;
+    // 之前退場過就會有加倍的 backoff;恢復連線時要把間隔收回正常值,
+    // 否則資料好了卻還在用 5 分鐘一次的節奏。
+    if (dataFeed.backoffMs !== DATA_FEED_POLL_MS) {
+      dataFeed.backoffMs = DATA_FEED_POLL_MS;
+      restartDataFeedTimer();
+    }
+    applyDataFeed(feed);
+    return true;
+  } catch (error) {
+    dataFeed.failures += 1;
+    dataFeed.lastError = String(error?.message ?? error);
+    // 失敗 1–2 次沿用上一份,場景完全不動;第 3 次才退場。
+    if (dataFeed.failures >= DATA_FEED_MAX_FAILURES) {
+      leaveLiveMode();
+      runtime.dataFeed = null;
+      dataFeed.backoffMs = Math.min(
+        DATA_FEED_MAX_BACKOFF_MS, dataFeed.backoffMs * 2,
+      );
+      restartDataFeedTimer();
+    }
+    // 絕不 setFatalError:資料層掛掉不是致命錯誤。
+    console.warn("[§24] 即時資料取得失敗，沿用既有場景：", dataFeed.lastError);
+    updateDataSourceUi();
+    return false;
+  } finally {
+    dataFeed.inFlight = false;
+    if (dataFeed.rerunRequested) {
+      dataFeed.rerunRequested = false;
+      pollDataFeedOnce();
+    }
+  }
+}
+
+function restartDataFeedTimer() {
+  if (dataFeed.timer !== null) {
+    clearInterval(dataFeed.timer);
+    dataFeed.timer = null;
+  }
+  if (runtime.dataSourceId === "synthetic") return;
+  if (document.hidden) return;
+  dataFeed.timer = setInterval(() => { pollDataFeedOnce(); }, dataFeed.backoffMs);
+}
+
+function startDataFeedPolling() {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (dataFeed.timer !== null) {
+        clearInterval(dataFeed.timer);
+        dataFeed.timer = null;
+      }
+      return;
+    }
+    if (runtime.dataSourceId === "synthetic") return;
+    pollDataFeedOnce();
+    restartDataFeedTimer();
+  });
+  restartDataFeedTimer();
+  if (runtime.dataSourceId !== "synthetic") pollDataFeedOnce();
+}
+
+function setDataSource(sourceId, { poll = true } = {}) {
+  const next = DATA_FEED_SOURCES[sourceId] ? sourceId : "synthetic";
+  runtime.dataSourceId = next;
+  dataFeed.failures = 0;
+  dataFeed.backoffMs = DATA_FEED_POLL_MS;
+  dataFeed.lastError = null;
+  if (ui.dataSourceSelect && ui.dataSourceSelect.value !== next) {
+    ui.dataSourceSelect.value = next;
+  }
+  if (ui.dataSourceSegmented) {
+    for (const button of ui.dataSourceSegmented.querySelectorAll("button")) {
+      button.classList.toggle("is-active", button.dataset.datasource === next);
+    }
+  }
+  if (ui.dataSourceUrl) ui.dataSourceUrl.hidden = next !== "file";
+  if (next === "synthetic") {
+    runtime.dataFeed = null;
+    leaveLiveMode();
+  }
+  restartDataFeedTimer();
+  if (poll && next !== "synthetic") pollDataFeedOnce();
+  updateDataSourceUi();
+  return next;
+}
+
+// UI 的唯一目標:讓人一眼知道「這是不是即時的」。四種徽章:
+//   即時(綠) / 走廊代理(琥珀) / 已過期·非即時(紅) / 合成(中性)
+function updateDataSourceUi() {
+  if (!ui.dataSourceBadge) return;
+  const feed = runtime.dataFeed;
+  const badge = ui.dataSourceBadge;
+  const notes = [];
+  badge.classList.remove("is-live", "is-proxy", "is-stale");
+
+  if (runtime.dataSourceId === "synthetic") {
+    badge.textContent = "合成";
+    ui.dataSourceHeadline.textContent = "未接外部資料，使用 seeded 合成車流";
+    ui.dataAgeValue.textContent = "—";
+    ui.dataDetectorValue.textContent = "—";
+    ui.dataVehicleValue.textContent = "—";
+    ui.dataSourceNote.hidden = true;
+    ui.dataSourceNote.classList.remove("is-stale");
+    return;
+  }
+
+  if (!feed || feed.degraded) {
+    badge.textContent = "無資料";
+    badge.classList.add("is-stale");
+    const label = DATA_FEED_SOURCES[runtime.dataSourceId]?.label ?? runtime.dataSourceId;
+    ui.dataSourceHeadline.textContent = `${label}：無資料，已退回合成車流`;
+    ui.dataAgeValue.textContent = "—";
+    ui.dataDetectorValue.textContent = "—";
+    ui.dataVehicleValue.textContent = "—";
+    const reason = feed?.warnings?.[0] ?? feed?.confidence?.note
+      ?? dataFeed.lastError ?? `讀不到 ${dataSourceUrl() ?? ""}`;
+    ui.dataSourceNote.hidden = false;
+    ui.dataSourceNote.classList.add("is-stale");
+    ui.dataSourceNote.textContent = reason;
+    return;
+  }
+
+  const age = feedAgeS(feed);
+  const stale = feedIsStale(feed);
+  const historic = age !== null && age > DATA_FEED_HISTORY_S;
+  const level = feed.confidence?.level ?? "";
+
+  if (stale) {
+    badge.textContent = historic ? "歷史資料 · 非即時" : "已過期 · 非即時";
+    badge.classList.add("is-stale");
+  } else if (level === "corridor-proxy") {
+    badge.textContent = "走廊代理值";
+    badge.classList.add("is-proxy");
+  } else {
+    badge.textContent = "即時";
+    badge.classList.add("is-live");
+  }
+
+  ui.dataSourceHeadline.textContent = feed.source?.labelZhTw
+    ?? DATA_FEED_SOURCES[runtime.dataSourceId]?.label ?? "";
+  ui.dataAgeValue.textContent = formatAge(age);
+
+  const detector = feed.detectors?.[0];
+  ui.dataDetectorValue.textContent = detector
+    ? `${detector.id}`
+    : (feed.source?.kind === "file" ? "影像" : "—");
+  const simulation = feed.simulation ?? {};
+  const low = finiteNumber(simulation.mainVehicleMin);
+  const high = finiteNumber(simulation.mainVehicleMax);
+  ui.dataVehicleValue.textContent = low !== null
+    ? (low === high ? String(low) : `${low}–${high}`)
+    : "—";
+
+  if (detector) {
+    notes.push(
+      `${detector.roadZhTw ?? detector.id} · ${detector.distanceM} 公尺外`
+      + `（${feed.confidence?.labelZhTw ?? "—"}）`,
+    );
+  }
+  if (feed.observedAt) notes.push(`量測時間 ${feed.observedAt}`);
+  if (Array.isArray(feed.warnings)) notes.push(...feed.warnings);
+  if (simulation.laneQuotaConfidence === "heuristic") {
+    notes.push("逐車道分佈為推定值，非量測。");
+  }
+  if (finiteNumber(simulation.pedestrianMin) === null) {
+    notes.push("行人：此來源無資料，沿用模擬預設。");
+  }
+  ui.dataSourceNote.hidden = notes.length === 0;
+  ui.dataSourceNote.classList.toggle("is-stale", stale);
+  ui.dataSourceNote.textContent = notes.join(" ");
+}
+
+function setupDataSourceUi() {
+  if (!ui.dataSourceSegmented) return;
+  for (const button of ui.dataSourceSegmented.querySelectorAll("button")) {
+    button.addEventListener("click", () => {
+      setDataSource(button.dataset.datasource);
+    });
+  }
+  ui.dataSourceSelect.addEventListener("change", () => {
+    setDataSource(ui.dataSourceSelect.value);
+  });
+  try {
+    dataFeed.customUrl = localStorage.getItem(DATA_FEED_URL_STORAGE_KEY) ?? "";
+  } catch { dataFeed.customUrl = ""; }
+  ui.dataSourceUrl.value = dataFeed.customUrl;
+  const commitUrl = () => {
+    dataFeed.customUrl = ui.dataSourceUrl.value.trim();
+    try {
+      if (dataFeed.customUrl) {
+        localStorage.setItem(DATA_FEED_URL_STORAGE_KEY, dataFeed.customUrl);
+      } else {
+        localStorage.removeItem(DATA_FEED_URL_STORAGE_KEY);
+      }
+    } catch { /* 私密模式下 localStorage 會丟,忽略即可 */ }
+    // 改位址等於「重新開始」:清掉失敗計數與 backoff,立刻重試一次。
+    dataFeed.failures = 0;
+    dataFeed.backoffMs = DATA_FEED_POLL_MS;
+    if (runtime.dataSourceId === "file") {
+      restartDataFeedTimer();
+      pollDataFeedOnce();
+    }
+  };
+  ui.dataSourceUrl.addEventListener("change", commitUrl);
+  ui.dataSourceUrl.addEventListener("blur", commitUrl);
+  updateDataSourceUi();
+}
+
 function animate(nowMs = performance.now()) {
   requestAnimationFrame(animate);
   if (document.hidden) {
@@ -7292,6 +8378,17 @@ async function main() {
     await loadSignalAspects();
     await loadKbot();
     applyAllSceneLayers();
+    // §24:資料層最後才啟動,而且**不 await** —— feed 掛掉不能卡住開機。
+    // ?source=replay|tdx|file 可在網址列直接指定(給 CDP 驗收與分享連結用)。
+    try {
+      const wanted = new URLSearchParams(location.search).get("source");
+      if (wanted && DATA_FEED_SOURCES[wanted]) {
+        setDataSource(wanted, { poll: false });
+      }
+    } catch (error) {
+      console.warn("[§24] 網址列來源參數無效：", error);
+    }
+    startDataFeedPolling();
     animate();
   } catch (error) {
     console.error(error);

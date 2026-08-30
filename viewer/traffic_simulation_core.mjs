@@ -519,13 +519,18 @@ export function controllerSafeZone(s, t) {
 // controllerSafeZone 認定的安全區(真的被逼到那裡不算違規),但實測會讓
 // 指揮者每一輪都退進公車停靠格裡「站在公車站裡指揮」,而且被車廂完全遮
 // 擋——使用者明確否決。退避一律走人行道轉角。
+// §26 y = 「__groundHeightAt() 實測地面 + 腳底相對 holder 原點的 4 mm
+// 偏移」(舊值 0.24 是猜的,機器人一直浮在人行道上方 2.7 cm)。
+//   (15.0, 17.15)  地面 0.2127  PedestrianSidewalk_ShuiyuanCommercialEast_01
+//   (14.0, -16.75) 地面 0.1783  CrosswalkCurbRamp_3(對側是緣石斜坡,比較低)
+//   (-0.5, 17.00)  地面 0.2201  SidewalkJoint_2_Transverse_000
 export let CONTROLLER_REFUGES = Object.freeze([
   Object.freeze({ id: "sidewalk_pos", label: "行穿線頭人行道",
-    s: 15.0, t: 17.15, y: 0.24 }),
+    s: 15.0, t: 17.15, y: 0.217 }),
   Object.freeze({ id: "sidewalk_neg", label: "對側人行道",
-    s: 14.0, t: -16.75, y: 0.24 }),
+    s: 14.0, t: -16.75, y: 0.182 }),
   Object.freeze({ id: "lane90_corner", label: "巷90 巷口人行道",
-    s: -0.5, t: 17.00, y: 0.24 }),
+    s: -0.5, t: 17.00, y: 0.224 }),
 ]);
 
 // 最近的避車處(以直線距離;同距離時取清單順序較前者)。
@@ -1067,12 +1072,25 @@ export function buildSpawnPlan(
   mix,
   pedestrianSpeed = 1.45,
   mode = "normal",
+  // §24:即時資料層可選的方向/車道配額。兩者都不給時走的是與改動前
+  // **位元完全相同**的路徑(同樣的 random() 呼叫序列),三支 node 測試
+  // 因此不受影響。
+  options = {},
 ) {
   if (!(Number(pedestrianSpeed) > 0)) {
     throw new RangeError("pedestrianSpeed must be positive");
   }
   const budget = TRAFFIC_DENSITY_MODES[mode] ?? TRAFFIC_DENSITY_MODES.normal;
   const modeId = TRAFFIC_DENSITY_MODES[mode] ? mode : "normal";
+  const splitRaw = options?.directionSplit;
+  const directionSplit = Number.isFinite(splitRaw) ? splitRaw : null;
+  // 就地扣減會改到呼叫端的物件,所以先深拷貝一份。
+  const laneQuota = options?.laneQuota
+    ? Object.fromEntries(Object.entries(options.laneQuota).map(
+      ([key, value]) => [key, { ...value }],
+    ))
+    : null;
+  const useQuota = Boolean(laneQuota) || directionSplit !== null;
   const random = mulberry32(seed);
   const mainCount = integerBetween(
     random,
@@ -1083,7 +1101,9 @@ export function buildSpawnPlan(
 
   const laneGroups = new Map();
   const mainVehicles = roster.map((type, index) => {
-    const lane = laneForVehicle(type, random);
+    const lane = useQuota
+      ? laneForVehicleByQuota(type, random, directionSplit, laneQuota)
+      : laneForVehicle(type, random);
     const vehicle = {
       id: `roosevelt-${index}`,
       type,
@@ -1192,6 +1212,11 @@ export function buildSpawnPlan(
     pedestrians,
     busLaneCount: BUS_LANES.length,
     spawnReductions: removedIds.size,
+    // §24:回報實際生效的資料層選項,UI 才能誠實顯示「這一批車是被
+    // 什麼驅動的」。沒有資料層時兩者都是 null,與改動前的欄位集合相比
+    // 只多兩個永遠為 null 的鍵。
+    directionSplit,
+    laneQuotaApplied: laneQuota ? true : false,
   };
 }
 
@@ -1419,7 +1444,197 @@ export let TRAFFIC_DENSITY_MODES = Object.freeze({
     pedestrianMax: 24,
     sideVehiclesPerColumn: 4,
   }),
+  // §24 即時資料模式。預設值刻意與「一般」完全相同 —— 這是「資料還沒到」
+  // 時的退場值,場景看起來就和 synthetic 一樣,不會空掉(硬規則 2)。
+  // 有資料時由 applyLiveTrafficBudget() 覆寫,它是唯一能重新指派這個
+  // live binding 的入口。這個模式**不註冊 §19 參數**:參數面板固定 94 項,
+  // verify_acceptance_12 / verify_minimal_shell 都硬編碼了這個數字。
+  live: Object.freeze({
+    label: "即時",
+    mainVehicleMin: 22,
+    mainVehicleMax: 28,
+    pedestrianMin: 10,
+    pedestrianMax: 16,
+    sideVehiclesPerColumn: 3,
+  }),
 });
+
+
+// ---------------------------------------------------------------------------
+// §24 即時資料層(core 段)
+//
+// 這一段只做「純函式 + 唯一的寫入閘門」。抓資料、解析、對應偵測器都在
+// data/ingest.py;viewer 只認 data/SCHEMA.md 的 JSON,不管資料哪來。
+// ---------------------------------------------------------------------------
+
+// applyLiveTrafficBudget 的夾取範圍,與 §19 densityParam() 註冊的
+// min/max 完全一致(density.*.mainVehicleMin 等),所以「即時」模式吃到的
+// 值域不會比使用者手動能拉到的範圍更寬。
+export const LIVE_BUDGET_LIMITS = Object.freeze({
+  mainVehicleMin: Object.freeze([0, 80]),
+  mainVehicleMax: Object.freeze([0, 80]),
+  pedestrianMin: Object.freeze([0, 60]),
+  pedestrianMax: Object.freeze([0, 60]),
+  sideVehiclesPerColumn: Object.freeze([0, 10]),
+});
+
+
+// 把外部資料寫進「即時」模式的預算。只允許動 live 這一個 key —— sparse /
+// normal / peak 是使用者的手動檔位,資料源不得覆蓋。
+// 回傳實際套用值與被拒項目,讓 UI 能誠實顯示「要求 X,實際 Y」。
+export function applyLiveTrafficBudget(patch) {
+  const applied = {};
+  const rejected = [];
+  const next = { ...TRAFFIC_DENSITY_MODES.live };
+  for (const [key, value] of Object.entries(patch ?? {})) {
+    const limits = LIVE_BUDGET_LIMITS[key];
+    if (!limits) { rejected.push({ key, reason: "unknown-key" }); continue; }
+    const n = Number(value);
+    if (!Number.isFinite(n)) { rejected.push({ key, reason: "not-finite" }); continue; }
+    const clamped = Math.round(Math.max(limits[0], Math.min(limits[1], n)));
+    if (clamped !== n) rejected.push({ key, reason: "clamped", asked: n, got: clamped });
+    next[key] = clamped;
+    applied[key] = clamped;
+  }
+  // min > max 時互換,而不是丟錯 —— buildSpawnPlan 的 integerBetween 對
+  // 反向區間會回傳 NaN,那會讓場景空掉。
+  if (next.mainVehicleMin > next.mainVehicleMax) {
+    [next.mainVehicleMin, next.mainVehicleMax] = [next.mainVehicleMax, next.mainVehicleMin];
+    applied.mainVehicleMin = next.mainVehicleMin;
+    applied.mainVehicleMax = next.mainVehicleMax;
+    rejected.push({ key: "mainVehicle", reason: "swapped-min-max" });
+  }
+  if (next.pedestrianMin > next.pedestrianMax) {
+    [next.pedestrianMin, next.pedestrianMax] = [next.pedestrianMax, next.pedestrianMin];
+    applied.pedestrianMin = next.pedestrianMin;
+    applied.pedestrianMax = next.pedestrianMax;
+    rejected.push({ key: "pedestrian", reason: "swapped-min-max" });
+  }
+  TRAFFIC_DENSITY_MODES = Object.freeze({
+    ...TRAFFIC_DENSITY_MODES,
+    live: Object.freeze({ ...next, label: "即時" }),
+  });
+  return { applied, rejected, budget: TRAFFIC_DENSITY_MODES.live };
+}
+
+
+// 把「即時」模式的預算還原成出廠值(= 一般模式的數字)。切離即時來源時用。
+export function resetLiveTrafficBudget() {
+  TRAFFIC_DENSITY_MODES = Object.freeze({
+    ...TRAFFIC_DENSITY_MODES,
+    live: Object.freeze({
+      label: "即時",
+      mainVehicleMin: 22,
+      mainVehicleMax: 28,
+      pedestrianMin: 10,
+      pedestrianMax: 16,
+      sideVehiclesPerColumn: 3,
+    }),
+  });
+  return TRAFFIC_DENSITY_MODES.live;
+}
+
+
+// 資料源驅動的幹道車速。與 §19 的 speed.mainMin/mainMax 是同一組 live
+// binding,所以參數面板會直接顯示資料餵進來的值(而不是偷偷用另一份)。
+// 回傳原本的區間,呼叫端負責在離開即時來源時還原。
+export function applyLiveSpeedRange(minMps, maxMps) {
+  const previous = { min: MAIN_SPEED_RANGE.min, max: MAIN_SPEED_RANGE.max };
+  const lo = Number(minMps);
+  const hi = Number(maxMps);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return previous;
+  const a = Math.max(0.5, Math.min(25, Math.min(lo, hi)));
+  const b = Math.max(0.5, Math.min(25, Math.max(lo, hi)));
+  MAIN_SPEED_RANGE = Object.freeze({ min: a, max: b });
+  return previous;
+}
+
+
+// 交通流基本關係式 q = k · v(Greenshields 基本圖的定義式,不是任何擬合
+// 模型):流率 q [輛/小時] = 密度 k [輛/公里] × 空間平均車速 v [公里/小時]。
+//
+// 這個模擬是「封閉迴圈、固定母體」:車子跑到場景邊界不會消失,而是被
+// recycleMainVehicle() 傳回上游(traffic_director.js)。所以偵測器量到的
+// 「流率」不能直接當生成率用,必須先換成「同一時刻待在生成跨距內的車數」:
+//
+//   q  = Volume(輛/5分鐘) × 12                       ← 單位換算,無係數
+//   k  = q / max(speedFloorKph, AvgSpeed)            ← q = k·v 的定義式
+//   k̄  = k / laneCount                               ← 平均到每車道
+//   N  = k̄ × (spanM / 1000) × targetLanes            ← 密度 × 長度 × 車道數
+//
+// speedFloorKph 的用途:AvgSpeed 可能是 0(全停)或 -99(TDX swagger 註記
+// 的資料異常旗標)。除以 0 會讓 k 爆炸,所以取下限。預設 5 km/h ≈ 步行
+// 速度,是「車陣仍在動」的最低可信值;低於這個值 VD 的速度估計本來就
+// 不可靠(占有率才是可信的量)。這是本檔唯一一個「工程判斷」常數,
+// 其餘全是單位換算與定義式。
+export function vdVolumeToPopulation({
+  volumeVehPer5Min,
+  avgSpeedKph,
+  laneCount = 1,
+  spanM = SPAWN_SPAN_M,
+  targetLanes = null,
+  speedFloorKph = 5,
+}) {
+  const volume = Math.max(0, Number(volumeVehPer5Min) || 0);
+  const flowVph = volume * 12;
+  const reported = Number(avgSpeedKph);
+  const usableSpeed = Number.isFinite(reported) && reported > 0 ? reported : 0;
+  const speedKph = Math.max(speedFloorKph, usableSpeed);
+  const densityVehPerKm = flowVph / speedKph;
+  const lanes = Math.max(1, Number(laneCount) || 1);
+  const densityPerLane = densityVehPerKm / lanes;
+  const scenelanes = Math.max(1, Number(targetLanes ?? lanes) || 1);
+  const raw = densityPerLane * (Math.max(0, Number(spanM) || 0) / 1000) * scenelanes;
+  return {
+    flowVph,
+    speedKph,
+    speedFloored: usableSpeed < speedFloorKph,
+    densityVehPerKm,
+    densityPerLane,
+    raw,
+    vehicles: Math.round(raw),
+  };
+}
+
+
+// 方向抽樣。split 是「往西北(direction=+1)的比例」,0.5 = 對半。
+export function directionForSplit(random, split = 0.5) {
+  const s = Number.isFinite(split) ? Math.min(1, Math.max(0, split)) : 0.5;
+  return random() < s ? 1 : -1;
+}
+
+
+// 逐車道配額版的車道指派。quota 為 falsy 時,行為與 laneForVehicle()
+// 完全一致(只是方向改由 split 決定)。有 quota 時按剩餘配額加權抽,
+// 但**一律以 lane.allowed 作最後守門** —— §4a 的 allowed 清單是硬規則,
+// 資料源不得把速克達塞進內側車道。quota 物件會被就地扣減,呼叫端要自備副本。
+export function laneForVehicleByQuota(type, random, split = null, quota = null) {
+  const dir = directionForSplit(random, split);
+  if (!quota) return laneForVehicle(type, random, dir);
+  if (type === "bus") return BUS_LANES.find((lane) => lane.direction === dir);
+  const lanes = generalLanesByPosition(dir);
+  const want = quota[String(dir)];
+  if (!want) return laneForVehicle(type, random, dir);
+  const order = ["outer", "middle", "inner"];
+  const candidates = order.filter((position) => (
+    lanes[position]
+    && lanes[position].allowed.includes(type)
+    && Number(want[position]) > 0
+  ));
+  if (candidates.length === 0) return laneForVehicle(type, random, dir);
+  const total = candidates.reduce((sum, p) => sum + Number(want[p]), 0);
+  let ticket = random() * total;
+  for (const position of candidates) {
+    ticket -= Number(want[position]);
+    if (ticket <= 0) {
+      want[position] = Number(want[position]) - 1;
+      return lanes[position];
+    }
+  }
+  const last = candidates[candidates.length - 1];
+  want[last] = Number(want[last]) - 1;
+  return lanes[last];
+}
 
 
 // ---------------------------------------------------------------------------

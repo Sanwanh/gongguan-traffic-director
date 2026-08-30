@@ -1,0 +1,457 @@
+{
+  "port": 8124,
+  "generatedAt": "2026-08-30T22:34:06.034Z",
+  "base": {
+    "dataCamera": 6,
+    "dataCommand": 4,
+    "paramCount": 100,
+    "paramRows": 100,
+    "hasToggle": true,
+    "toggleChecked": true,
+    "enabled": true,
+    "param": 1,
+    "station": "行穿線旁人行道",
+    "layerKbot": {
+      "enabled": true,
+      "nodes": 1,
+      "visibleNodes": 1
+    }
+  },
+  "off": {
+    "enabled": false,
+    "param": 0,
+    "holderVisible": 0,
+    "robotOnRoadway": false,
+    "station": "已停用",
+    "motionKeys": 17,
+    "holderPosition": [
+      15,
+      0.21763796547849634,
+      17.15
+    ],
+    "pedestrianConflictHook": "boolean",
+    "chip": true,
+    "postGroupHidden": true,
+    "bodyClass": true,
+    "stationLabel": "已停用",
+    "safety": "安全閘門正常 純號誌模式:KBot 已停用"
+  },
+  "camera": {
+    "mode": "orbit",
+    "projection": "perspective",
+    "preset": "overview",
+    "transitioning": false,
+    "position": [
+      42.7469,
+      35,
+      -2.045
+    ],
+    "target": [
+      -6.6872,
+      0.9,
+      -4.9216
+    ],
+    "distance": 60.1233,
+    "azimuthDeg": 86.67,
+    "polarDeg": 55.447,
+    "zoom": 1,
+    "selection": null,
+    "blockers": 231,
+    "buttons": 6,
+    "modeButtons": 5
+  },
+  "phases": [
+    "roosevelt_flow",
+    "clearance",
+    "pedestrian_crossing",
+    "lane90_release"
+  ],
+  "lastSample": {
+    "phase": "lane90_release",
+    "throughput": 32,
+    "movedVehicles": 0,
+    "collisions": 0,
+    "onRoad": false
+  },
+  "on": {
+    "enabled": true,
+    "visibleNodes": 1,
+    "station": "行穿線旁人行道",
+    "chip": false,
+    "postGroupHidden": false,
+    "bodyClass": false
+  },
+  "reloaded": {
+    "enabled": false,
+    "checked": false,
+    "visibleNodes": 0,
+    "robotOnRoadway": false,
+    "statusLoading": "status-dot"
+  },
+  "results": [
+    {
+      "id": "A1_viewer_ready",
+      "ok": true
+    },
+    {
+      "id": "A2_red_lines",
+      "ok": true,
+      "detail": {
+        "dataCamera": 6,
+        "dataCommand": 4,
+        "paramCount": 100,
+        "paramRows": 100,
+        "hasToggle": true,
+        "toggleChecked": true,
+        "enabled": true,
+        "param": 1,
+        "station": "行穿線旁人行道",
+        "layerKbot": {
+          "enabled": true,
+          "nodes": 1,
+          "visibleNodes": 1
+        }
+      }
+    },
+    {
+      "id": "A3_param_count",
+      "ok": true,
+      "detail": {
+        "dataCamera": 6,
+        "dataCommand": 4,
+        "paramCount": 100,
+        "paramRows": 100,
+        "hasToggle": true,
+        "toggleChecked": true,
+        "enabled": true,
+        "param": 1,
+        "station": "行穿線旁人行道",
+        "layerKbot": {
+          "enabled": true,
+          "nodes": 1,
+          "visibleNodes": 1
+        }
+      }
+    },
+    {
+      "id": "A4_toggle_present_and_on",
+      "ok": true,
+      "detail": {
+        "dataCamera": 6,
+        "dataCommand": 4,
+        "paramCount": 100,
+        "paramRows": 100,
+        "hasToggle": true,
+        "toggleChecked": true,
+        "enabled": true,
+        "param": 1,
+        "station": "行穿線旁人行道",
+        "layerKbot": {
+          "enabled": true,
+          "nodes": 1,
+          "visibleNodes": 1
+        }
+      }
+    },
+    {
+      "id": "B1_disabled",
+      "ok": true,
+      "detail": {
+        "enabled": false,
+        "param": 0,
+        "holderVisible": 0,
+        "robotOnRoadway": false,
+        "station": "已停用",
+        "motionKeys": 17,
+        "holderPosition": [
+          15,
+          0.21763796547849634,
+          17.15
+        ],
+        "pedestrianConflictHook": "boolean",
+        "chip": true,
+        "postGroupHidden": true,
+        "bodyClass": true,
+        "stationLabel": "已停用",
+        "safety": "安全閘門正常 純號誌模式:KBot 已停用"
+      }
+    },
+    {
+      "id": "B2_invisible",
+      "ok": true,
+      "detail": {
+        "enabled": false,
+        "param": 0,
+        "holderVisible": 0,
+        "robotOnRoadway": false,
+        "station": "已停用",
+        "motionKeys": 17,
+        "holderPosition": [
+          15,
+          0.21763796547849634,
+          17.15
+        ],
+        "pedestrianConflictHook": "boolean",
+        "chip": true,
+        "postGroupHidden": true,
+        "bodyClass": true,
+        "stationLabel": "已停用",
+        "safety": "安全閘門正常 純號誌模式:KBot 已停用"
+      }
+    },
+    {
+      "id": "B3_not_on_roadway",
+      "ok": true,
+      "detail": {
+        "enabled": false,
+        "param": 0,
+        "holderVisible": 0,
+        "robotOnRoadway": false,
+        "station": "已停用",
+        "motionKeys": 17,
+        "holderPosition": [
+          15,
+          0.21763796547849634,
+          17.15
+        ],
+        "pedestrianConflictHook": "boolean",
+        "chip": true,
+        "postGroupHidden": true,
+        "bodyClass": true,
+        "stationLabel": "已停用",
+        "safety": "安全閘門正常 純號誌模式:KBot 已停用"
+      }
+    },
+    {
+      "id": "B4_station_label",
+      "ok": true,
+      "detail": {
+        "enabled": false,
+        "param": 0,
+        "holderVisible": 0,
+        "robotOnRoadway": false,
+        "station": "已停用",
+        "motionKeys": 17,
+        "holderPosition": [
+          15,
+          0.21763796547849634,
+          17.15
+        ],
+        "pedestrianConflictHook": "boolean",
+        "chip": true,
+        "postGroupHidden": true,
+        "bodyClass": true,
+        "stationLabel": "已停用",
+        "safety": "安全閘門正常 純號誌模式:KBot 已停用"
+      }
+    },
+    {
+      "id": "B5_snapshot_contract",
+      "ok": true,
+      "detail": {
+        "enabled": false,
+        "param": 0,
+        "holderVisible": 0,
+        "robotOnRoadway": false,
+        "station": "已停用",
+        "motionKeys": 17,
+        "holderPosition": [
+          15,
+          0.21763796547849634,
+          17.15
+        ],
+        "pedestrianConflictHook": "boolean",
+        "chip": true,
+        "postGroupHidden": true,
+        "bodyClass": true,
+        "stationLabel": "已停用",
+        "safety": "安全閘門正常 純號誌模式:KBot 已停用"
+      }
+    },
+    {
+      "id": "B6_ui_state",
+      "ok": true,
+      "detail": {
+        "enabled": false,
+        "param": 0,
+        "holderVisible": 0,
+        "robotOnRoadway": false,
+        "station": "已停用",
+        "motionKeys": 17,
+        "holderPosition": [
+          15,
+          0.21763796547849634,
+          17.15
+        ],
+        "pedestrianConflictHook": "boolean",
+        "chip": true,
+        "postGroupHidden": true,
+        "bodyClass": true,
+        "stationLabel": "已停用",
+        "safety": "安全閘門正常 純號誌模式:KBot 已停用"
+      }
+    },
+    {
+      "id": "B7_safety_notice",
+      "ok": true,
+      "detail": "安全閘門正常 純號誌模式:KBot 已停用"
+    },
+    {
+      "id": "C1_camera_falls_back",
+      "ok": true,
+      "detail": {
+        "mode": "orbit",
+        "projection": "perspective",
+        "preset": "overview",
+        "transitioning": false,
+        "position": [
+          42.7469,
+          35,
+          -2.045
+        ],
+        "target": [
+          -6.6872,
+          0.9,
+          -4.9216
+        ],
+        "distance": 60.1233,
+        "azimuthDeg": 86.67,
+        "polarDeg": 55.447,
+        "zoom": 1,
+        "selection": null,
+        "blockers": 231,
+        "buttons": 6,
+        "modeButtons": 5
+      }
+    },
+    {
+      "id": "C2_camera_buttons_intact",
+      "ok": true,
+      "detail": {
+        "mode": "orbit",
+        "projection": "perspective",
+        "preset": "overview",
+        "transitioning": false,
+        "position": [
+          42.7469,
+          35,
+          -2.045
+        ],
+        "target": [
+          -6.6872,
+          0.9,
+          -4.9216
+        ],
+        "distance": 60.1233,
+        "azimuthDeg": 86.67,
+        "polarDeg": 55.447,
+        "zoom": 1,
+        "selection": null,
+        "blockers": 231,
+        "buttons": 6,
+        "modeButtons": 5
+      }
+    },
+    {
+      "id": "C3_setCameraMode_follow_falls_back",
+      "ok": true,
+      "detail": "orbit"
+    },
+    {
+      "id": "D1_phases_cycle",
+      "ok": true,
+      "detail": [
+        "roosevelt_flow",
+        "clearance",
+        "pedestrian_crossing",
+        "lane90_release"
+      ]
+    },
+    {
+      "id": "D2_traffic_moves",
+      "ok": true,
+      "detail": {
+        "before": 26,
+        "after": 32,
+        "movedFraction": 0
+      }
+    },
+    {
+      "id": "D3_never_on_roadway",
+      "ok": true
+    },
+    {
+      "id": "D4_no_collisions",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "id": "E1_re_enabled",
+      "ok": true,
+      "detail": {
+        "enabled": true,
+        "visibleNodes": 1,
+        "station": "行穿線旁人行道",
+        "chip": false,
+        "postGroupHidden": false,
+        "bodyClass": false
+      }
+    },
+    {
+      "id": "E2_station_back",
+      "ok": true,
+      "detail": {
+        "enabled": true,
+        "visibleNodes": 1,
+        "station": "行穿線旁人行道",
+        "chip": false,
+        "postGroupHidden": false,
+        "bodyClass": false
+      }
+    },
+    {
+      "id": "E3_ui_back",
+      "ok": true,
+      "detail": {
+        "enabled": true,
+        "visibleNodes": 1,
+        "station": "行穿線旁人行道",
+        "chip": false,
+        "postGroupHidden": false,
+        "bodyClass": false
+      }
+    },
+    {
+      "id": "E4_follow_available_again",
+      "ok": true,
+      "detail": "follow"
+    },
+    {
+      "id": "F1_persisted",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "id": "F2_restored_after_reload",
+      "ok": true,
+      "detail": {
+        "enabled": false,
+        "checked": false,
+        "visibleNodes": 0,
+        "robotOnRoadway": false,
+        "statusLoading": "status-dot"
+      }
+    },
+    {
+      "id": "F3_model_status_ready_even_when_disabled",
+      "ok": true,
+      "detail": "status-dot"
+    },
+    {
+      "id": "G1_no_console_errors",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "consoleErrors": []
+}

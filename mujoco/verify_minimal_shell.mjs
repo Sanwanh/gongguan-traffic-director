@@ -320,7 +320,7 @@ try {
       { tab: state.tab, panes: state.panes.map((p) => `${p.id}:${p.display}`) });
     check(`B_tab_${tab}_keeps_param_console`,
       paramsAlive.groups && paramsAlive.search && paramsAlive.resetAll
-      && paramsAlive.rows === 94 && paramsAlive.paramCount === 94, paramsAlive);
+      && paramsAlive.rows === 100 && paramsAlive.paramCount === 100, paramsAlive);
   }
   report.tabs = tabReport;
 

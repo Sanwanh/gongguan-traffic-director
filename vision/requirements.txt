@@ -1,0 +1,11 @@
+# 影像偵測管線的相依。全部是 MIT / BSD / Apache-2.0,與 viewer repo 的 MIT 相容。
+# 安裝:
+#   uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.txt
+# 或:
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+#
+# 這裡沒有 ultralytics —— 它是 AGPL-3.0,會傳染整個公開站台。理由見 README「授權」一節。
+
+numpy==2.5.2            # BSD-3-Clause
+onnxruntime==1.29.0     # MIT — macOS 版自帶 CoreMLExecutionProvider
+pillow==12.3.0          # MIT-CMU

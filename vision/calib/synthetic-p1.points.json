@@ -1,0 +1,100 @@
+{
+  "schema": "gongguan.vision.points.v1",
+  "camera": "synthetic-p1",
+  "frame": {
+    "width": 1920,
+    "height": 1080
+  },
+  "roi": {
+    "id": "visible",
+    "sMin": -19.248309009070315,
+    "sMax": 16.217746927390504,
+    "tMin": -13.22,
+    "tMax": 14.18,
+    "lanes": 6,
+    "note": "校正點在地面上的包絡 ∩ 車道帶。"
+  },
+  "note": "由合成真值 truth_p1.json 產生,點擊雜訊 σ=1.0px。真實攝影機請改用 calibrate.html 或手填 template。",
+  "points": [
+    {
+      "px": [
+        1699.2643784178144,
+        598.4910109116763
+      ],
+      "s": 15.448352774943663,
+      "t": 15.062837646020444,
+      "band": "straight-crosswalk",
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_27"
+    },
+    {
+      "px": [
+        197.5013735721564,
+        580.6644070408444
+      ],
+      "s": -11.600036910213616,
+      "t": -14.949044753818887,
+      "band": "other-marking",
+      "label": "GongguanV50_MainCrosswalk_Staggered657_Stripe_21"
+    },
+    {
+      "px": [
+        952.6474443104498,
+        1067.081232494264
+      ],
+      "s": 16.217746927390504,
+      "t": -10.956556260050034,
+      "band": "straight-crosswalk",
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_03"
+    },
+    {
+      "px": [
+        884.6184845142701,
+        405.70602796770015
+      ],
+      "s": -19.248309009070315,
+      "t": 14.156914492158865,
+      "band": "other-marking",
+      "label": "GongguanV50_MainCrosswalk_Staggered657_Stripe_00"
+    },
+    {
+      "px": [
+        1263.2882301653112,
+        668.1548510532173
+      ],
+      "s": 10.943334306995846,
+      "t": 2.5249054577228405,
+      "band": "straight-crosswalk",
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_14"
+    },
+    {
+      "px": [
+        552.8812767895985,
+        988.1107139190945
+      ],
+      "s": 11.439892901133033,
+      "t": -14.267753705596382,
+      "band": "straight-crosswalk",
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_00"
+    },
+    {
+      "px": [
+        550.0521433728773,
+        553.1092488502869
+      ],
+      "s": -7.78826161730082,
+      "t": -6.552714988696685,
+      "band": "other-marking",
+      "label": "GongguanV50_MainCrosswalk_Staggered657_Stripe_14"
+    },
+    {
+      "px": [
+        991.0182473864612,
+        793.5271310765684
+      ],
+      "s": 11.194341795672852,
+      "t": -5.963691972076599,
+      "band": "straight-crosswalk",
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_09"
+    }
+  ]
+}

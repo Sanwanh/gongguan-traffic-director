@@ -1,0 +1,183 @@
+{
+  "schema": "not.the.right.schema.v9",
+  "generatedAt": "2026-08-31T01:46:51+08:00",
+  "observedAt": "2026-08-31T01:46:51+08:00",
+  "ageAtGenerationS": 0,
+  "staleAfterS": 3600,
+  "source": {
+    "id": "cv-roosevelt-lane90",
+    "kind": "file",
+    "labelZhTw": "新鮮度對照組",
+    "realtime": true,
+    "origin": "使用者自架的 YOLOX-s + homography 聚合管線",
+    "originUrl": null,
+    "license": "使用者自有",
+    "updateIntervalS": 1,
+    "note": "影格只存在偵測程序的記憶體中;跨越信任邊界的只有這份聚合 JSON。"
+  },
+  "site": {
+    "id": "gongguan-roosevelt-lane90",
+    "labelZhTw": "羅斯福路四段 × 羅斯福路四段90巷",
+    "lat": 25.0145,
+    "lon": 121.534
+  },
+  "confidence": {
+    "level": "on-site",
+    "labelZhTw": "路口實測",
+    "note": "偵測器就在這個路口,不是走廊代理值。切向(車道歸屬)精度約 0.2 m。"
+  },
+  "detectors": [
+    {
+      "id": "cam-roosevelt-se",
+      "roadZhTw": "羅斯福路四段",
+      "role": "on-site",
+      "distanceM": 0,
+      "laneCount": 6,
+      "intervalS": 60,
+      "status": "ok",
+      "lanes": [
+        {
+          "laneNo": 0,
+          "lanePosition": "inner",
+          "positionConfidence": "calibrated",
+          "volume": 41,
+          "speedKph": 27.4,
+          "occupancy": 12.1,
+          "classes": {
+            "small": 38,
+            "motorcycle": 2,
+            "large": 1
+          }
+        },
+        {
+          "laneNo": 1,
+          "lanePosition": "middle",
+          "positionConfidence": "calibrated",
+          "volume": 55,
+          "speedKph": 25.9,
+          "occupancy": 16.4,
+          "classes": {
+            "small": 34,
+            "motorcycle": 19,
+            "large": 2
+          }
+        },
+        {
+          "laneNo": 2,
+          "lanePosition": "outer",
+          "positionConfidence": "calibrated",
+          "volume": 88,
+          "speedKph": 23.1,
+          "occupancy": 21.0,
+          "classes": {
+            "small": 21,
+            "motorcycle": 66,
+            "large": 1
+          }
+        }
+      ]
+    }
+  ],
+  "measurement": {
+    "volumeVehPer5Min": 184.0,
+    "flowVph": 2208.0,
+    "densityVehPerKm": 88.4,
+    "densityPerLaneVehPerKm": 29.5,
+    "speedRangeKph": [
+      23.1,
+      27.4
+    ],
+    "populationRaw": 24.06,
+    "queueLenM": {
+      "roosevelt_sw": 34.2,
+      "lane90": 11.8
+    },
+    "formula": "q = Volume x 12 ; k = q / max(5, AvgSpeed) ; N = (k / laneCount) x (spanM/1000) x generalLanes"
+  },
+  "simulation": {
+    "densityMode": "live",
+    "mainVehicleMin": 24,
+    "mainVehicleMax": 25,
+    "pedestrianMin": 12,
+    "pedestrianMax": 18,
+    "sideVehiclesPerColumn": 3,
+    "speedRangeMps": [
+      6.417,
+      7.611
+    ],
+    "speedCapped": false,
+    "mix": {
+      "car": 0.4494,
+      "scooter": 0.3818,
+      "motorcycle": 0.0694,
+      "bus": 0.0194,
+      "bicycle": 0.08
+    },
+    "mixSource": "cv-class-counts",
+    "directionSplit": 0.54,
+    "directionSplitSource": "measured",
+    "laneQuota": {
+      "1": {
+        "inner": 224,
+        "middle": 299,
+        "outer": 477
+      },
+      "-1": {
+        "inner": 210,
+        "middle": 305,
+        "outer": 485
+      }
+    },
+    "laneQuotaUnit": "permille-weight",
+    "laneQuotaMethod": "homography-lane-assignment",
+    "laneQuotaConfidence": "calibrated"
+  },
+  "pedestrians": {
+    "count": 15,
+    "source": "cv-roosevelt-se",
+    "note": "每分鐘穿越人數的聚合值。不做人臉、不做跨幀身分追蹤。"
+  },
+  "bus": {
+    "arrivals": {
+      "nw": [
+        0,
+        1130
+      ],
+      "se": [
+        137,
+        500,
+        1043
+      ]
+    },
+    "source": "taipei-bus-blob"
+  },
+  "signal": {
+    "cycleS": 120,
+    "phases": [
+      {
+        "id": "roosevelt_flow",
+        "greenS": 58
+      },
+      {
+        "id": "pedestrian_crossing",
+        "greenS": 32
+      },
+      {
+        "id": "lane90_release",
+        "greenS": 18
+      }
+    ],
+    "source": "cctv-start-of-green-observation",
+    "confidence": "estimated",
+    "note": "從影像的車流啟動波反推,不是官方時制表。臺北市沒有公開號誌時制 API。"
+  },
+  "privacy": {
+    "aggregateOnly": true,
+    "personalData": "none",
+    "faceRecognition": false,
+    "reIdentification": false,
+    "rawImagery": false
+  },
+  "degraded": false,
+  "warnings": []
+}

@@ -1304,3 +1304,602 @@ scrollHeight)、`window.__setPanelTab(id)`、`window.__setPanelCollapsed(bool)`�
 (改之前)與 `v22_final_1920.png` / `v22_final_1440.png` / `v22_tab_sim.png` /
 `v22_tab_params.png` / `v22_collapsed.png` / `v22_recording.png`(改之後)。
 備份:`viewer/traffic_director.{js,html,css}.v11`。
+
+---
+
+## §23 效能優化:靜態場景合批 / 像素比 / 節流(2026-08-18)
+
+> 補記於 2026-08-31。這一節當時做了但**沒有寫設計紀錄**,導致後續驗收拿不到
+> 書面基準可比對,只能靠讀碼反推。同一場作業還把一條共用 CSS 規則弄壞
+> (見 §23e),兩個疏漏都記在這裡。
+
+san 回報「網站太吃效能」。實測根因不是三角形數量,是 **draw call**:
+2752 個裡只有 289 個是人車,其餘約 2400 個(3.45M 三角形的 96%)全部來自
+環境 GLB 的 4860 顆靜態 mesh。three.js 每個 draw call 的 CPU 成本(狀態切換
+與 uniform 上傳)才是這個場景的瓶頸。
+
+### 23a 靜態場景合批
+
+環境 GLB 是**扁平的**:4512 個頂層子節點、每個只含一顆 mesh。所以第一版
+「在頂層子節點的子樹內合併」是 0 命中。改成全域分組後仍是 0 命中 —— 因為
+GLTF 給每顆 mesh 各自的 material 實例,而且顏色是「只差 1/255 的灰白」
+(f3f3ee / f2f3ee / f3f2ec)。
+
+最終做法:**顏色不進材質簽章**,改烘進頂點色,由一顆 `color=white`、
+`vertexColors=true` 的共用材質乘回去 —— 視覺完全等價。粗糙度與金屬度量化
+到 0.1,再依 25 m 空間分格保住視錐剔除。3753 顆合成 367 組。
+
+分格大小實測取捨(基準 2752 draw / 3.45M tris):
+
+| cell | draw calls | triangles |
+| --- | --- | --- |
+| 25 m | 1139 | 3.68M |
+| 45 m | 1092 | 3.84M |
+| 70 m | 1059 | 3.94M |
+
+取 25 m:draw call 只比 70 m 多 7%,但多畫的三角形少一半。
+
+不合併的節點:名字含 `building` 的頂層子節點(「場景建物」圖層與相機防穿模
+包圍盒都以它為單位)、`MainCrosswalk_*Stripe`(`__paintedNodeBounds` 要讀每條
+包圍盒)、五個店招節點(`__setNodeVisibility` 的錄影清場)。
+
+### 23b 像素比上限 2 → 1.5
+Retina 上 2 等於 4 倍片段量。仍是 §19 的可調參數 `render.maxPixelRatio`。
+
+### 23c 節流門檻留 1 ms 餘裕
+`1000/60 = 16.667 ms` 對上 rAF 實際的 16.66x ms,每兩幀判定一次「太早」而
+丟幀 —— 量到的 FPS 卡在 ~40,rAF 卻仍以 60 Hz 喚醒,幀沒畫出來 CPU 照燒。
+
+### 23d 視窗失焦降到 10 fps
+不是全停:全停之後切回來會看到模擬時間跳一大段。
+
+### 23e 實測結果與一個自己造成的回歸
+
+| | 之前 | 之後 |
+| --- | --- | --- |
+| draw calls(一般) | 2760 | 1139 |
+| draw calls(尖峰) | 2805 | 1185 |
+| measuredFps | 39.7 | 60 |
+| triangles | 3.45M | 3.68M |
+
+視覺零回歸:藏掉 actor 樹後三個機位像素比對,平均色差 0.00–0.07 / 255。
+
+**回歸(2026-08-31 才被抓到)**:清 `.panel-footer` 死碼時用的正則把它從一條
+**共用選擇器清單**的最後一項連同整個宣告區塊一起吃掉,導致
+`.brand-block, .model-status, .active-phase, .legal-boundary, .command-button,
+.switch-row, .secondary-button, .icon-button` 這八個一起失去
+`display:flex; align-items:center`。已於 §27 修復。教訓:清死碼前先確認那個
+選擇器是不是掛在共用規則上。
+
+新 hook:`window.__perfProfile()`。
+
+## §24 真實資料層:可插拔資料源 → 驅動模擬(2026-08-31)
+
+san 的原話:「我需要你幫我去抓現實中這個路口的 cctv 然後把它裡面的人以及
+車輛同步進這個網站裡面」。這一節做的是那條鏈的**前半段**:一個
+「資料源 → schema → 模擬」的可插拔資料層。影像偵測(CV)是這一層的第四種
+來源,接上就能用,不必再動 viewer。
+
+### §24.0 一句話
+
+**viewer 只認 `data/SCHEMA.md` 的 `gongguan.intersection.state.v1`,完全不管
+資料哪來。** 四種來源都是 `data/ingest.py` 寫出來的同一份 JSON;使用者自架
+的端點也只要吐同一個形狀。
+
+### §24.1 檔案
+
+| 檔案 | 作用 |
+|---|---|
+| `data/SCHEMA.md` | 資料契約(欄位、映射公式與每一個係數的來源、viewer 行為表) |
+| `data/README.md` | 四種來源怎麼用、**san 拿 TDX 金鑰的確切步驟**、已知死路清單 |
+| `data/ingest.py` | 四種來源的產生器。只用 Python 標準函式庫,零外部相依 |
+| `data/detectors.json` | 偵測器對應表:哪幾台算這個路口的代理值、車種欄位怎麼解讀、車道怎麼推定 |
+| `data/snapshots/taipei_vd_20241114T164602.xml` | 凍結的真實 VD 快照(502 557 bytes, sha256 `c151a6cd…`) |
+| `data/live/*.json` | 四種來源的落點,viewer 讀這裡 |
+| `data/examples/` | CV 影像管線範例輸出 + 驗收用的測試素材 |
+| `mujoco/verify_data_sources.mjs` | §24 的 CDP 驗收(41 項) |
+
+### §24.2 四種來源
+
+| kind | 需要金鑰 | 即時 | 說明 |
+|---|:--:|:--:|---|
+| `synthetic` | ✗ | ✗ | 目前的模擬行為。**預設值,永遠可用**,不連任何網路,不輪詢 |
+| `replay` | ✗ | ✗ | 凍結的 2024-11-14 臺北市 VD 快照。**真實資料,今天就能看** |
+| `tdx` | ✔ | ✔ | TDX Live VD,60 秒更新。金鑰由 san 自己註冊 |
+| `file` | ✗ | 視來源 | 本機 JSON 或 URL。給 CV 影像管線與使用者自架服務用 |
+
+**`replay` 為什麼是「偵測器輪播」而不是時間序列**:`GetVDDATA.xml` 自
+2024-11-14 起就凍結了,而且它本來就是**單一時刻**的 724 台裝置 / 2195 條
+車道快照 —— 臺北市從未公開過 VD 的時間序列。所以一個 frame = 一台真實
+偵測器在那一刻的真實量測,frame 之間的差異是**空間差異**不是時間變化。
+`source.frameKind: "detector-rotation"`,UI 照實顯示。等 san 拿到金鑰,
+`ingest.py --capture` 會累積真正的時間序列,replay 讀到 `.jsonl` 就自動
+變成 `frameKind: "temporal"`、標籤改成「歷史重播」。
+
+### §24.3 映射公式(完整推導與係數來源見 `data/SCHEMA.md` §5)
+
+模擬是**封閉迴圈、固定母體**(車子到邊界會被 `recycleMainVehicle()` 傳回
+上游),所以偵測器的「流率」不能直接當生成率:
+
+```
+q = Volume × 12                        ← 輛/5分鐘 → 輛/小時,純單位換算
+k = q / max(5, AvgSpeed)               ← 交通流基本關係式 q = k·v 的定義式
+N = (k / laneCount) × (136/1000) × 6   ← 密度 × SPAWN_SPAN_M × 一般車道數
+mainVehicleMin = floor(N) ; mainVehicleMax = ceil(N)
+```
+
+- 車速區間 = **偵測器自己的跨車道 AvgSpeed min/max**(不是我發明的 ±X%),
+  夾在 `[5, speed_limit_kph + 10]`(`+10` = 市區道路科學儀器採證容許誤差)。
+- 車種:`Svolume/Mvolume/Lvolume` → car / (scooter+motorcycle) / bus。
+  **`M = 機車`** 的四項證據(`Volume == S+M+L` 在 2195 條車道上零誤差、
+  TDX Live VD 同批感測器的 `VehicleType M = 機車`、12 條 `L/V>0.9` 的公車道、
+  `VELJA00` 外側車道 63.4% M)寫在 `data/detectors.json`。
+- 逐車道權重:`class-share-ranking` 啟發式(`L/V>0.9` → 公車道;其餘依機車
+  佔比排序切三份),`confidence: "heuristic"`,UI 標明。
+  `MAIN_ROOSEVELT_LANES[].allowed` 仍是最後的硬守門。
+- **方向比例**:凍結快照沒有方向欄位 → 一律 0.5 並標 `assumed-5050`。
+- **行人**:VD 不量行人 → `null`,沿用模式預設,UI 標「無資料源」。
+  **絕不從車流量推估行人數再假裝是量測。**
+- **沒有下限保護**:量到 3 輛就顯示 3 輛。硬規則 2 的「不可讓場景空掉」
+  指的是抓不到資料時的退場,不是量少時去灌水。
+
+#### 誠實面對的發現
+
+**目前的合成車流比 2024-11-14 16:46 的實測擁擠 2–7 倍。** 「一般」模式
+25 輛 / 136 m = 每車道 30.6 輛/km ≒ 62 輛/5分/車道;實測是 4–57 輛/5分/車道,
+而且車速高得多。現行合成設定是「視覺上熱鬧」,不是那個時段的真實密度。
+
+### §24.4 core 的改動(`traffic_simulation_core.mjs`)
+
+- `TRAFFIC_DENSITY_MODES` 加第 4 個模式 `live`,**預設值與 `normal` 完全相同**
+  (資料還沒到時場景長得跟合成一樣)。**不註冊 §19 參數** —— 參數面板固定
+  94 項,`verify_acceptance_12` / `verify_minimal_shell` 都硬編碼了這個數字。
+- 新增 `applyLiveTrafficBudget(patch)`:唯一的寫入閘門,只准動 `live`,
+  夾在與 §19 `densityParam()` 相同的值域,`min > max` 會互換而不是丟錯。
+- `resetLiveTrafficBudget()` / `applyLiveSpeedRange(min, max)`:離開資料源時
+  原路還原(車速用的就是 §19 的 `speed.mainMin/mainMax` live binding,
+  所以參數面板顯示的是資料真正餵進來的值,不是偷偷用另一份)。
+- `vdVolumeToPopulation({...})`:上面那條公式的純函式版,node 測試可驗,
+  也開了 `window.__vdVolumeToPopulation` 讓 CDP 能在瀏覽器裡重算一次。
+- `buildSpawnPlan(seed, mix, pedSpeed, mode, options)` 第 5 參
+  `{ directionSplit, laneQuota }`。**不給 options 時走的是與改動前位元完全
+  相同的路徑**(同樣的 `random()` 呼叫序列),這一條有 node 測試守著。
+- `directionForSplit(random, split)` / `laneForVehicleByQuota(...)`。
+
+### §24.5 viewer 的改動(`traffic_director.js` §24 區)
+
+新增約 590 行(core +211、HTML +47、CSS +78)。
+
+- 輪詢用**獨立 `setInterval`,不掛 rAF** —— `animate()` 在 `document.hidden`
+  時直接 return,掛上去分頁一隱藏輪詢就整個停住。預設 15 秒,
+  `visibilitychange` 時停/續。
+- URL 優先序:`?live=<url>` > 使用者在 UI 打的位址 > `../data/live/<source>.json`。
+  一支函式同時滿足硬規則 2 的三種部署(本機 ingest 寫檔 / GH Action commit /
+  自架端點)。一律加 `?t=<timestamp>`,因為 GitHub Pages 對 `.json` 不送 no-cache。
+- 只有**生成指紋**(車數/行人/mix/方向/車道權重)變了才重生,否則每 15 秒
+  整場重生會很難看,也會把 throughput / collisions 洗掉。
+- 失敗 1–2 次沿用上一份、場景完全不動;第 3 次才退回合成,backoff 15s→300s
+  (**但不切掉來源選擇**,否則資料回來也不會自己復原)。任何例外只
+  `console.warn`,**絕不** `setFatalError`。
+- 手動挑車流檔位 = 把控制權從資料源拿回來(自動退場時不觸發)。
+
+#### 一個踩到的坑(值得記下來)
+
+schema 用 `null` 表示「這個來源量不到這一項」。`Number(null) === 0` 而
+`Number.isFinite(0) === true` —— 第一版直接用 `Number.isFinite(Number(x))`
+判斷,結果把「VD 不量行人」讀成「量到 0 個行人」,場景的行人與巷90 車流
+被歸零。改用 `finiteNumber()`(先擋 `null`/`undefined`/`""`)才對。
+驗收加了 `C9_null_fields_keep_simulation_defaults` 守這條。
+
+### §24.6 UI(「模擬」分頁新增「資料來源」區塊)
+
+四顆來源按鈕 + 鏡射 select + 位址輸入框 + 徽章 + 三個數值 chip + 說明框。
+沿用既有的 `.param-group` / `.field-row` / `.segmented` / `.spawn-summary`,
+新 CSS 只有 8 條規則、全部用既有 token(過得了 §22 的 F 風格紅線)。
+
+**徽章的唯一目標是「一眼知道這是不是即時的」**,四種狀態、越不即時越搶眼:
+
+| 徽章 | 顏色 | 條件 |
+|---|---|---|
+| 即時 | 綠 | 未過期,且 `confidence.level` 不是 `corridor-proxy` |
+| 走廊代理值 | 琥珀 | 未過期,但偵測器在幾百公尺外 |
+| 已過期 · 非即時 | 紅 | `now − observedAt > staleAfterS` |
+| 歷史資料 · 非即時 | 紅 | 同上,且資料超過 10 分鐘 |
+| 無資料 | 紅 | `degraded` 或抓不到 |
+| 合成 | 中性 | 沒接外部資料 |
+
+`staleAfterS === 0` 是「這份資料本來就不宣稱即時」的明示訊號(歷史快照與
+合成都用 0),**永遠**標成非即時。`data/live/replay.json` 就是 0,所以
+重播模式一定紅字寫著「歷史資料 · 非即時 · 654 天前」。
+
+新 hook:`window.__dataSource()`(來源 / 新鮮度 / 過期旗標 / 偵測器 / 量測值 /
+預算 / 實際落地的車道與車種分佈 / 輪詢統計)、`window.__setDataSource(id)`、
+`window.__pollDataSource()`、`window.__vdVolumeToPopulation(input)`。
+**舊 hook 一個都沒動。**
+
+### §24.7 驗收
+
+`node mujoco/verify_data_sources.mjs` — **44/44 全過**。實測數字:
+
+| frame | 偵測器 | 路段 | 距離 | 量測 | q | k | N | 場景實際 | 車速 (m/s) |
+|---|---|---|---:|---:|---:|---:|---:|---:|---|
+| 0 | `VELJA00` | 羅斯福路三段 | 643 m | 135 輛/5分 | 1620 | 27.04 | 3.68 | **4** | 10.24–13.89 |
+| 1 | `VCCKW00` | 羅斯福路五段 | 1036 m | 88 輛/5分 | 1056 | 27.52 | 11.23 | **12** | 10.02–12.08 |
+| 2 | `VF9KB00` | 新生南路三段 | 377 m | 155 輛/5分 | 1860 | 52.05 | 7.08 | **8** | 8.28–11.51 |
+
+車數 4 → 12 → 8(3.0 倍變化),而且每一輪的車種組成、逐車道權重、車速區間
+都跟著換。C 段是**端到端**:每一輪真的去跑 `data/ingest.py` 重寫
+`data/live/replay.json`,viewer 靠自己的輪詢抓到新內容,沒有任何捷徑。
+`C8` 還在瀏覽器裡用 `window.__vdVolumeToPopulation` 重算一次公式,
+和 Python 算出來的 `populationRaw` 對到小數第三位(7.079 = 7.079)。
+
+失效與復原(E 段)實測:
+
+| 情況 | 實測行為 |
+|---|---|
+| 404(檔案不存在) | 失敗 1–2 次沿用上一份、場景完全不動;第 3 次退回合成(28 輛),backoff 15s→30s,**來源選擇保持在「檔案」繼續重試** |
+| 壞 schema(合法 JSON、schema 欄位錯) | 整份拒收,`observedAt` 仍是上一份好資料的;連續 3 次才退場 |
+| 資料修好 | **不必按任何東西**,下一次輪詢就回到即時,`failures` 歸 0、間隔收回 15 000 ms |
+| 無金鑰的 `tdx` | `degraded` feed → 退回合成,場景維持 28 輛 |
+| 全程 | `#fatalError` 隱藏、console error **0** |
+
+還原後 `speed.mainMin/mainMax` 回到 5.5 / 7.9、輪詢停掉;`[data-camera]` 仍 6 顆、
+`[data-command]` 仍 4 顆、§19 仍 **94** 項、26 個舊 hook 全在。
+
+三套 node 測試全過,`test_lane_rules.mjs` 另外加了 6 組 §24 純函式測試
+(預設路徑位元相同、映射公式黃金值、預算閘門只准動 live 且會夾/互換、
+方向比例、車道配額仍守 `allowed` 且不碰權重 0 的位置、呼叫端的 quota
+物件不被就地改掉)。
+
+`verify_recording_shots.mjs`(完整分鏡驗收,約 13 分鐘)**8 個 Shot 全過**。
+`verify_minimal_shell.mjs` 42/43 —— 唯一的 `A3_topbar_is_a_chip`
+(`.topbar` 高 38 px > 門檻 32 px)以 v12 備份做過 A/B 實測,**改動前後
+數值一模一樣(100×38)**,是既有問題不是這次的回歸。
+
+備份:`viewer/traffic_director.{js,html,css}.v12`、
+`traffic_simulation_core.mjs.v12`、`traffic_params.mjs.v12`
+(`.v11` 早就與現行檔案不同,`cp -n` 會靜默不覆蓋 —— 這次直接用 `.v12`)。
+
+---
+
+## §25 影像偵測管線:攝影機 → 聚合人車位置 → §24 資料層(2026-08-31)
+
+`vision/`。把攝影機畫面變成 §24 已定義的 `gongguan.intersection.state.v1`,
+viewer 完全不必改 —— 它只是多了一個 `file` 來源可以指過去。
+**這一節沒有動 `viewer/` 底下任何檔案。**
+
+### §25.1 為什麼要有影像:VD 永遠給不了路口實測值
+
+全臺北 636 個 VD **沒有一個是路口/停止線型**(TDX 靜態表 `DetectionType == 4`
+的計數為 0),羅斯福路四段整條連一個 VD 都沒有。§24 的 `corridor-proxy` 是誠實
+標示,不是暫時將就 —— 那個限制**只有影像解得開**。
+
+影像另外還贏在映射的乾淨程度:VD 給的是流率,§24 得繞 `q = k·v` 才換成模擬要的
+密度(而且需要 `speedFloorKph = 5` 這個工程判斷常數)。**一張影格本身就是密度**,
+所以 `vision/` 的公式只有一個純幾何的比例放大:
+
+```
+N = ROI 內車數 × (generalLanes / roiLanes) × (spanM / roiLengthM)
+```
+
+沒有 `q = k·v`、沒有速度、沒有任何工程判斷常數。
+
+### §25.2 技術選型與授權
+
+| 項目 | 選擇 | 授權 |
+|---|---|---|
+| 偵測器 | YOLOX-s(Megvii-BaseDetection/YOLOX 0.1.1rc0) | **Apache-2.0** |
+| 推論 | onnxruntime 1.29 + CoreMLExecutionProvider | MIT |
+
+M4 實測 **14.4 ms / 幀**(CoreML;純 CPU 70.4 ms)。
+
+**ultralytics 系列(YOLOv5/v8/v10/v11)是 AGPL-3.0、YOLOv9 是 GPL-3.0,一律不用**
+—— repo 的 `LICENSE` 是 MIT,AGPL 會傳染整個公開站台。連「只拿 ONNX 權重不拿
+程式碼」都不行(`onnx-community/yolov10n` 的 cardData 仍標 agpl-3.0)。
+權重不進版控,`vision/fetch_model.py` 下載後驗 SHA256,登錄在 `models_registry.py`。
+
+### §25.3 校正:三道閘門
+
+地面單應性 `H`(像素 → 模擬座標 `(s,t)`)。地面座標一律由
+`vision/dump_marks.mjs` 從 `window.__paintedNodeBounds` 取真值(90 條白漆),
+**不手打**。
+
+| 閘門 | 判準 | 擋什麼 |
+|---|---|---|
+| 1 點數與跨帶 | ≥ 6 點且跨 ≥ 2 條畫線帶 | 4 點沒有冗餘,單點對錯查不出來 |
+| 2 DLT 條件數 | `σ_max/σ_倒數第二 ≤ 100` | 重複點、共線、秩虧 |
+| 3 Monte-Carlo 抖動自檢 | σ=1px × 200 次,ROI 內 p95 ≤ 0.5 m | **對應全對但基線太短** |
+
+第 3 道不可省:兩條斑馬線由相距 25.10 m 靠到 0.92 m 時,條件數幾乎不動
+(8.3 → 8.1),誤差卻暴增 20.6 倍。另加一道參考閘門:單點殘差 > 0.30 m
+或 > 中位數 4 倍就警告(比值本身不夠敏感,實測挪 1.2 m 只讓比值變成 2.5)。
+
+點擊工具是 `vision/calibrate.html`(零 CDN、4× 放大鏡,影像不離開分頁),
+但**閘門判定只留在 `calibrate.py`**,數學不重複實作。
+
+### §25.4 量得到 vs 量不到(隱私契約的直接代價)
+
+| 量 | 狀態 | 標示 |
+|---|---|---|
+| 場景車數 / 逐車道分佈 / 方向比例 | 量測 | `laneQuotaConfidence: "calibrated"`、`directionSplitSource: "measured"` |
+| 車種比例(含**自行車** —— VD 永遠量不到) | 量測 | `mixSource: "cv-class-counts"` |
+| 行人數 | 量測 | `pedestrians.source` |
+| 佇列長度 | 由停止線幾何推 | `queueConfidence: "estimated"` |
+| **車速** | **量不到** | `simulation.speedRangeMps: null` |
+| **流率(輛/小時)** | **量不到** | `lanes[].volume: null`,另給 `presentCount` |
+
+車速與流率都需要「同一台車在兩個時刻的位置」= 跨幀身分關聯(re-ID),
+硬規則 3 明文禁止。**這是設計取捨,不是還沒做完。** `speedRangeMps` 為 `null`
+時 viewer 沿用現有車速(§24 已有 `Array.isArray` 守門,不必改)。
+
+### §25.5 隱私的技術保證
+
+信任邊界畫在 `aggregate.project_detections()` 的出口。
+
+| 保證 | 實作 |
+|---|---|
+| 影格不落地 | ffmpeg `rawvideo` 走 pipe,沒有任何路徑寫影像檔 |
+| 只寫一個檔 | 全部經 `run_pipeline.write_state()`(`.tmp` → `os.replace`) |
+| 框不外洩 | `assert_privacy_clean()` 遞迴掃輸出,碰到 `Detection` 或禁字就 raise |
+| 禁字表 | 與 `data/ingest.py` 同一份(`bbox` `trackId` `embedding` `image` …) |
+| repo 保險 | `vision/.gitignore` 直接封掉 `*.png *.jpg *.mp4 *.m3u8` |
+| 體積 canary | 1080p 影格 ~290 KB → 聚合 JSON ~5.9 KB(**壓縮 49×**) |
+
+### §25.6 自我驗證迴圈:實測誤差
+
+`vision/harvest_truth.mjs` 走 CDP 對 8 個機位各拍一張 1920×1080
+(`recordingMode` 開啟),同時抓出 90 條白漆與 34 台車 / 15 個行人的精確 `(s,t)`。
+`verify_pipeline.py` 模擬使用者點 8 個校正點(跨帶 + 最遠點取樣 + σ=1px 點擊雜訊)
+跑完整條管線再比對。
+
+| 閘門 | 結果 |
+|---|---|
+| A1 幾何(無雜訊) | 中位 **0.12 cm**,p95 0.30 cm,8/8 |
+| A2 自檢誠實度 | 實測 p95 / 自檢預測 p95 中位 **0.88**,8/8 |
+| C 車道歸屬 | 理想 **99%**(130/131),真實偵測器 80% |
+| D 量測誤差 | 理想 **2.2%**,真實偵測器 49.4% |
+| E 隱私 + schema | 8/8,`data/ingest.py --validate` 全過 |
+| F 徑向修正遷移(LOO) | 車輛 1.25 → 0.88 m(+30%),行人 −19%(**只對車輛有效**) |
+
+**誤差幾乎是純徑向的**(理想欄 `|切向|` 中位 0.01–0.04 m,徑向 0–0.19 m),
+物理成因是框底邊對應近側輪廓觸地點而不是物體中心 —— 所以**車道歸屬比絕對位置
+可信得多**,而車道歸屬正是數位孿生真正需要的量。
+
+修正方向由 `H` 的解析 Jacobian 求得(影像上 u 固定的線在地面會聚到
+`C = H·(0,1,0)`,而框底邊就是物體上 v 最大的點,所以偏差**恰好**沿這個 pencil),
+**不需要相機外參**。
+
+#### 三個必須誠實面對的限制
+
+1. **偵測器在合成畫面上的召回只有 25%,而且完全不能外推到真實影像。**
+   低多邊形渲染對 COCO 權重是 out-of-distribution。對照組:同一支程式、同一顆
+   權重,在真實臺北路口照片上抓到 19 台車含 16 台機車。真實召回必須用使用者
+   自己的攝影機、人工標 20~30 個框來量。
+2. **車數總誤差(57%)遠大於量測誤差(2.2%),差在 ROI 代表性。**
+   攝影機只看得到路口附近 30–40 m,而跨距是 136 m,外推倍率 3.8–5.3;而路口
+   附近正是車陣最密的地方(實測 ROI 密度是全跨距平均的 1.34 倍)。
+   改善順序:ROI 放到停止線上游 → 選視野更長的機位 → 多裝一台攝影機。
+3. **viewer 的相機守衛會把落在建物內的機位推走。** 要求 `[6,13,26]` 被推了
+   58 m、拍到屋頂內側,而真值仍宣稱 14 台車在畫面內。`harvest_truth.mjs` 會比對
+   要求機位與實際機位,差 > 3 m 標 `poseClamped`,驗證時跳過。沒有這道檢查會得到
+   一整批看起來很合理的假數字。
+
+### §25.7 交接驗收
+
+`vision/verify_viewer_ingest.mjs`(11 項全過):用
+`?source=file&live=../vision/out/state_p1.json` 開 viewer,斷言 `schemaOk`、
+未 `degraded`、標成 `on-site` 而非走廊代理值、切到 `live` 檔位、場景車數落在
+`mainVehicleMin/Max` 內、`laneQuota` 有套用、`speedRangeMps` 為 null 時沿用預設、
+徽章顯示「即時」、console error 0。
+
+`vision/selftest.py` 44 項純函式測試(不需要 Chrome / 模型 / 網路),含三個病態
+校正案例的守門驗證。`scene.py` 是 `traffic_simulation_core.mjs` 的常數鏡像,
+兩支測試的第一道檢查都是用 node 直接 import core 做逐項比對 —— core 改了而鏡像
+沒跟上會直接失敗,而不是靜默給出錯的車道歸屬。
+
+三套 node 測試全過(這一節沒有動 `viewer/`,所以不需要跑 `stamp_versions.py`)。
+
+## §26 交通指揮機器人總開關 + 走路修正(2026-08-31)
+
+san 的兩句原話:「我需要可以把機器人先關掉的按鈕」「他現在走路還是很奇怪」。
+這一節把兩件事一起做完,並附上同一支腳本量出來的修改前後對照。
+
+### §26.1 開關放哪、為什麼
+
+`#kbotEnabled` 放在**「指揮」分頁的最上面**(`traffic_director.html`,`.phase-card`
+之前)。理由三條:
+
+1. 「指揮」是預設開著的分頁 —— 開啟頁面不用點任何東西就看得到這顆開關,
+   符合 san「我需要可以把機器人先關掉的按鈕」的直覺(他不會想去翻參數面板)。
+2. 這一整頁講的就是機器人(`KBot GESTURE CONTROL`),開關放在它管的東西上面
+   是最短的語意距離。
+3. §22 簡約原則:沿用既有的 `.switch-row` 元件,不新增任何視覺語彙;只多一條
+   分隔線。三個新 DOM id(`#kbotEnabled` / `#kbotDisabledChip` / 沿用既有的
+   `#kbotPostGroup`),沒有動任何既有 id、`[data-camera]`(仍 6 顆)、
+   `[data-command]`(仍 4 顆)。
+
+關掉時畫面上的三個回饋:面板開關本身、viewport 圖例的琥珀色
+`純號誌模式` 徽章、安全閘門列的 `純號誌模式:KBot 已停用` 狀態 pill
+(用 `is-safe` 樣式 —— 它是狀態聲明,不是鎖)。
+
+### §26.2 關掉時到底關掉了什麼
+
+**單一收斂點**:`robotOnRoadway()` 第一行加 `if (!runtime.kbotEnabled) return false;`。
+這一行同時修好 7 個下游:`pedestrianConflict` / `movementAllowed` /
+`vehicleMovementAllowed` / `safetyReadyForGesture` / `enforceActiveSafety` /
+碰撞鍵 `kbot|${id}` / 安全鎖 UI。**只把圖層藏起來是不夠的**——那樣
+`robotOnRoadway()` 仍為 true,相位會被無限鎖在 clearance,而且畫面上看不出
+任何原因(這是實作前就想清楚才沒踩到的坑)。
+
+其餘五處都是「提早 return / 多一個 AND」,不刪任何既有行為:
+`updateKbotWalk` / `updateKbotGestureAnimation` / `updateKbotLights` 早退、
+`kbotStationLabel()` 回 `"已停用"`、`applySceneLayer("kbot")` 改成
+`visible && runtime.kbotEnabled` 的兩層 AND(與 markings 同款)。
+
+相機:新增 `cameraModeAvailable(mode)`,`setCameraMode("follow")` 與
+`[data-camera="robot"]` 在純號誌模式會 graceful 退回 orbit / overview 並跳提示。
+**六顆 `[data-camera]` 與 `[data-camera-mode]` 一律保留**(硬規則 7),按下去
+不會沒反應,而是換視角 + 說明原因。
+
+**刻意不做的三件事**:
+- 不跳過 `loadKbot()`。`refreshModelStatus()` 需要 `kbotReady` 才會離開
+  `is-loading`,而「`#modelStatus` 沒有 `is-loading`」正是硬規則 9 的 CDP
+  載入判準。模型照載、照進場景,只是 `visible=false` 且行為停擺。
+- 不刪 `#layer-kbot`、不刪 `SCENE_LAYERS` 的 `kbot` 項。
+- 不改任何相位/手勢決策。手勢是相位的顯示層,本來就不是從機器人讀出來的,
+  所以號誌完全照跑 —— 這就是「純號誌模式」。
+
+**持久化**走 §19 參數登錄表(`kbot.enabled`,0/1,`kind: "toggle"`,讀數欄顯示
+「開/關」),所以「記住上次選擇」直接由既有的 `gongguan.params.v1` localStorage
+處理,不必發明第二套機制。新增 hook `window.__kbotEnabled()` /
+`window.__setKbotEnabled(v)`,`snapshot().kbotMotion` 多一個 `enabled` 欄位,
+**其餘 16 個欄位輸出完全不變**(`holderPosition` 仍回真座標)。
+
+錄影/驗收腳本不受影響:預設是開著的,而且每支腳本都用自己的
+`--user-data-dir`,localStorage 不會跨 session 黏住。
+
+### §26.3 走路:診斷與修法
+
+量測工具:`mujoco/measure_kbot_gait.mjs`(before/after 同一支),
+資料來源是新增的唯讀 hook `window.__kbotGaitProbe()`(逐幀回傳兩腳掌與
+腳底 AABB 的模擬座標、本體位置/朝向、GLB 建模朝向、去掉 yaw 的手掌位移)、
+`window.__groundHeightAt(s,t)`(往下打射線量實景地面高度),以及驗收專用的
+`__kbotWalkProbe` / `__kbotTeleportProbe`。
+
+#### (a) 主因:朝向公式的手性錯了,而且沒有考慮 GLB 的建模朝向
+
+舊公式 `holder.rotation.y = atan2(dx, -dz)` 的旋轉手性是反的,再疊上 GLB 的
+`TrafficDirector_KBot_Root` 自帶 45° 建模朝向,**誤差會隨行進方向改變**:
+沿人行道走(±s)偏 −135°(幾乎是倒著走)、穿越馬路走(±t)偏 +45°(螃蟹走)。
+加一個常數偏移**修不好**,必須換公式。
+
+正確關係(逐項實測驗證):
+
+```
+ψ = holder.rotation.y + ρ          ρ = GLB root 節點當幀的建模朝向
+正面方位角 φ = −ψ                  (simulationRoot 帶 z 鏡射,+yaw 在模擬座標是順時針)
+⇒ holder.rotation.y = −φ − ρ
+```
+
+兩個實作決定:
+
+1. **ρ 每幀現讀**(`kbotModelYawRad()`),不寫死。烘焙的 root 旋轉軌其實是
+   「手勢段 45°、`lane90_release` 與步行段 135°」,但執行期實測**恆為 45°**
+   —— 原因是 §13 的姿勢交叉淡入會直接寫 `node.quaternion`,而 three.js 的
+   `PropertyMixer.apply()` 只在「這一幀的值和上一幀不同」時才回寫場景;root
+   在同一個相位窗內是常數,所以再也不會被糾正回來。現讀的寫法對兩種情況都
+   正確,將來 ρ 若真的動了也不會出事。
+2. **被 slew 的是方位角 φ,不是 holder yaw**(`updateKbotYaw`)。ρ 一旦跳
+   90°,holder yaw 必須當幀跟著跳才能維持同一個朝向;如果 slew 的是 holder
+   yaw,那 90° 就會變成 0.7 秒的原地自旋。
+
+#### (b) 崗位 y:量出來,不要猜
+
+`__groundHeightAt()` 實測:人行道 0.2127、行穿線白漆 0.0161、巷90 巷口
+0.2201、進場中繼點 0.2151;站崗姿勢的腳底在 holder 原點下方約 0.4 mm
+(四個手勢窗逐一量都一樣)。⇒ 崗位 y = 地面 y + `KBOT_SOLE_OFFSET_M`(0.004)。
+舊值 0.24 讓他在人行道上浮 2.7 cm;舊值 0.02 反而讓他陷進行穿線白漆 0.4 cm。
+`CONTROLLER_REFUGES` 的三個 y 同步改(core)。
+
+走路時另外再往下沉 `KBOT_WALK_GROUND_DROP_M`(= 腳底偏移 + 12 mm),因為烘焙
+循環是「基座 weld + 微蹲、腳全程離地」(SPEC_MUJOCO 的 WALK_CYCLE),比較低的
+那隻腳還會再高 min 2 / p10 12 / 中位 30 / max 71 mm。取 p10 讓落地瞬間對齊
+地面、最多只沉 1 cm。下沉量與身體起伏都乘上 `currentSpeed / 設計速度`,
+起停就不會有那一下 ±2 cm 的彈跳。
+
+#### (c) 起停、轉彎
+
+- `runtime.kbotWalk.currentSpeed`:加速度上限 `KBOT_WALK_ACCEL = 3.0`
+  (0→1.45 約 0.48 s,和 §13 姿勢交叉淡入的 0.4 s 對齊)、
+  煞車 `KBOT_WALK_DECEL = 3.0`,接近終點時用 `√(2·a·剩餘路徑)` 收斂。
+  `kbotGaitRate()` 改讀 `currentSpeed`,腳步跟著由慢變快。
+- `kbotArrived()` **不再硬寫 `position.y`**;殘差交給閒置分支的 0.12 s
+  收斂曲線。
+- 轉彎改成**前視注視點**:面向「路徑前方 `KBOT_PATH_LOOKAHEAD_M = 0.9` m
+  處」而不是當前線段方向。折線轉角因此變成連續的朝向斜坡,而
+  **路徑本身一點都沒動** —— §16 的「踩在畫線上」比例不受影響。
+  再加轉彎減速 `max(0.45, cos(朝向誤差))`。
+- `kbotStartWalk()` 改道時**不重設**步態時鐘與速度,否則每次改道都有一次
+  「站定→重新起步」的頓挫,而且 clip 時間跳動 > 0.2 s 會再觸發一次淡入。
+- `kbotTravelTimeS()` 把加減速斜坡的 `v/(2a)` 算進預算(舊版系統性低估
+  0.4 s);`KBOT_DUTY_SPEED` 1.35 → 1.45 把斜坡花掉的時間還回來
+  (腳步播放率與速度等比,腳滑**比例**完全不受影響)。
+
+#### (d) 手臂:原本就是對的,不要亂修
+
+研究報告說「兩手同相位、擺幅只有腳的 45%」。實測**不成立**:把 holder yaw
+與建模朝向去掉之後,兩手掌的前後擺幅是 178–267 mm、左右相關係數 −0.99~−1.00
+(完美反相)。舊的量測是在「沒有扣掉 yaw」的座標下做的,轉身會被誤讀成擺臂。
+所以這一項**不做任何修改**,也不加程序化擺臂 —— 加了反而會破壞 §16 已驗收的
+手勢幅度。
+
+### §26.4 修改前後對照(`mujoco/measure_kbot_gait.mjs`,勤務速度直線走)
+
+| 量測 | 修改前 | 修改後 |
+|---|---|---|
+| 朝向誤差 +s / −s / +t / −t | −135° / −135° / +45° / +45° | **0° / 0° / 0° / 0°** |
+| 站立腳**側向**滑移(中位) | 882 / 845 / 475 / 423 mm/s | **0.6 / 0.6 / 0.6 / 0.6 mm/s** |
+| 站立腳**總**滑移(中位) | 1044 / 1011 / 1027 / 888 mm/s | **694 / 725 / 689 / 629 mm/s** |
+| 同上,占身體速度 | 77% / 75% / 76% / 66% | **48% / 50% / 48% / 44%** |
+| yaw 目標單幀最大跳動 | 90.0° | **3.3°** |
+| 90° 轉角耗時 / 期間位移 | 1.10 s / 1.48 m | **0.63 s / 0.91 m** |
+| 起步 0.4 s 身體位移 | 0.517 m | **0.251 m** |
+| 起步 0.4 s 站立腳位移 | 0.373 m | **0.073 m** |
+| 起停單幀 \|Δholder.y\| | 8.96 mm | **3.63 mm**(全部來自 bob,不再有到崗跳動) |
+| 站立時腳底離人行道 | +27.0 mm(浮在空中) | **+4.0 mm** |
+| 走路時最低腳底離崗位基準 | min +2 / 中位 +30 / max +71 mm | **min −9.6 / 中位 +14.3 / max +55.4 mm** |
+| 手掌前後擺幅 L/R | 178–267 mm | 178–267 mm(不變) |
+| 兩手相關係數 | −0.99 | −1.00(不變) |
+| console error | 0 | 0 |
+
+### §26.5 §16 四個數字(`mujoco/verify_san_complaints.mjs`,160 s 取樣)
+
+修改前的基準是拿 `.v13` 備份另起一個 serve.py(port 8125)跑同一支腳本量的,
+不是引用舊報告 —— 兩邊環境完全一樣才有可比性。
+
+| §16 指標 | 修改前(.v13) | 修改後 |
+|---|---|---|
+| 在車道上時踩在畫線上的比例 | 80.1% | **81.3%** |
+| 在車道上時落在行穿線畫線帶內 | 89.6% | **89.7%** |
+| 站在公車站月台的秒數 | 0 s | **0 s** |
+| 站定指揮的時間占比 | 54.4% | **55.7%** |
+| 崗位落在畫線帶內(crosswalk) | inStripe / inBand 皆 true | **皆 true** |
+| 巷90 崗位駐留 | 10.8 s | **12.7 s** |
+| console error | 0 | 0 |
+
+### §26.6 已知殘留(誠實記錄)
+
+**站立腳沿行進方向仍會滑,約身體速度的 44–50%**(修改前是 66–77%)。這不是
+viewer 的問題,是烘焙循環本身:`gesture_spec.json` 的 WALK_CYCLE 明寫
+「基座 weld + 微蹲使腳全程離地,無地面接觸;前進位移由 viewer root motion
+提供」,而且髖 pitch 是純正弦 —— **這支 clip 根本沒有平坦的站立相**,腳掌相對
+本體的軌跡在「著地」那 8 幀幾乎不動(每幀只後退 0.5–4.4 mm,等於以 100% 身體
+速度在地上拖)。
+
+要根治只能重烘:把 `gesture_spec.json` 的 `WALK_CYCLE` 髖 pitch 改成
+「站立相等角速度後擺、擺動相快速回擺」的鋸齒剖面(duty factor 0.55–0.65),
+重跑 `run_gesture_sim.py → bake_glb.py → verify_motion.py`。驗收條件:
+用同一支 `measure_kbot_gait.mjs`,`plantedFrac`(沿軌滑移 < 15% 身體速度的
+畫格比例)要從現在的 0.14–0.22 提高到 > 0.45。這一節**沒有動 GLB**,因為
+重烘會連 1067 幀的手勢段一起重寫,風險遠大於收益,不該和開關/朝向修正混在
+同一次改動裡。
+
+另外:研究報告推薦的「`KBOT_WALK_DESIGN_SPEED` 0.85 → 0.42」**不採用**。
+那個建議是把整個 32 幀週期當成一個站立相算出來的;實際上一個週期是兩步,
+每步 16 幀,腳掌前後行程 0.56 m ⇒ 幾何上限就是 0.85 m/s,現值是對的。
+真正的問題是 clip 的**形狀**(沒有站立相),不是速度。
+
+### §26.7 新增的驗收腳本
+
+- `mujoco/verify_kbot_disable.mjs` —— 26 個閘門:紅線(6 相機 / 4 指令 /
+  §19 100 項)、關掉後不可見且 `robotOnRoadway === false`、站位標籤與三處
+  UI 回饋、相機降級(`[data-camera="robot"]` 與 `__setCameraMode('follow')`
+  都退回 orbit)、90 秒內相位照跑且車流真的有通過、零碰撞、再打開完全回來、
+  localStorage 跨 reload 記憶、停用時 `#modelStatus` 仍然離開 `is-loading`、
+  console error 0。
+- `mujoco/measure_kbot_gait.mjs` —— 上面那張對照表的來源,可重跑。
+
+§19 參數由 94 → **100**:新增 `kbot.enabled`、`kbot.walkAccel`、
+`kbot.walkDecel`、`kbot.turnRate`、`kbot.pathLookahead`、
+`kbot.walkGroundDrop`。`verify_acceptance_12.mjs` / `verify_minimal_shell.mjs`
+/ `verify_data_sources.mjs` 三支腳本裡寫死的 94 已同步改成 100。

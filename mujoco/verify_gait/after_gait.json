@@ -1,0 +1,222 @@
+{
+  "tag": "after",
+  "port": 8124,
+  "generatedAt": "2026-08-30T21:30:49.056Z",
+  "postY": 0.217,
+  "dutySpeed": 1.45,
+  "posts": {
+    "stand": {
+      "id": "stand",
+      "label": "行穿線旁人行道",
+      "x": 15,
+      "y": 0.217,
+      "z": 17.15
+    },
+    "crosswalk": {
+      "id": "crosswalk",
+      "label": "行穿線中央",
+      "x": 15,
+      "y": 0.02,
+      "z": 8.33
+    },
+    "lane90": {
+      "id": "lane90",
+      "label": "巷90 巷口",
+      "x": -0.5,
+      "y": 0.224,
+      "z": 17
+    }
+  },
+  "ground": {
+    "stand": {
+      "y": 0.2127,
+      "node": "GongguanV52_PedestrianSidewalk_ShuiyuanCommercialEast_01",
+      "hits": 4
+    },
+    "crosswalk": {
+      "y": 0.0161,
+      "node": "GongguanV50_MainCrosswalk_Straight656_Stripe_20",
+      "hits": 8
+    },
+    "lane90": {
+      "y": 0.2201,
+      "node": "GongguanV50_SidewalkJoint_2_Transverse_000",
+      "hits": 6
+    },
+    "entry0": {
+      "y": 0.2151,
+      "node": "GongguanV52_PedestrianSidewalk_ShuiyuanCommercialEast_00",
+      "hits": 4
+    },
+    "entry1": {
+      "y": 0.2151,
+      "node": "GongguanV52_PedestrianSidewalk_ShuiyuanCommercialEast_00",
+      "hits": 4
+    }
+  },
+  "legs": {
+    "plus_s": {
+      "samples": 355,
+      "bodySpeedMps": 1.446,
+      "modelYawDeg": 45,
+      "holderYawDeg": -45,
+      "clipTimeS": 46.11,
+      "facingDegMedian": 0,
+      "facingErrDeg": {
+        "median": 0,
+        "p90": 0
+      },
+      "stanceLateralSlipMmPerS": {
+        "p10": 0,
+        "median": 0.6,
+        "p90": 4.9,
+        "max": 275.9
+      },
+      "stanceAlongSlipMmPerS": {
+        "p10": 116.3,
+        "median": 707.1,
+        "p90": 1427.1
+      },
+      "plantedFrac": 0.174
+    },
+    "minus_s": {
+      "samples": 354,
+      "bodySpeedMps": 1.442,
+      "modelYawDeg": 45,
+      "holderYawDeg": 135,
+      "clipTimeS": 46.119,
+      "facingDegMedian": -180,
+      "facingErrDeg": {
+        "median": 0,
+        "p90": 0
+      },
+      "stanceLateralSlipMmPerS": {
+        "p10": 0,
+        "median": 0.6,
+        "p90": 9.2,
+        "max": 1024.7
+      },
+      "stanceAlongSlipMmPerS": {
+        "p10": 171.3,
+        "median": 744,
+        "p90": 1422.2
+      },
+      "plantedFrac": 0.142
+    },
+    "plus_t": {
+      "samples": 742,
+      "bodySpeedMps": 1.442,
+      "modelYawDeg": 45,
+      "holderYawDeg": 225,
+      "clipTimeS": 46.061,
+      "facingDegMedian": 90,
+      "facingErrDeg": {
+        "median": 0,
+        "p90": 66.05
+      },
+      "stanceLateralSlipMmPerS": {
+        "p10": 0,
+        "median": 0.6,
+        "p90": 186.2,
+        "max": 1277.3
+      },
+      "stanceAlongSlipMmPerS": {
+        "p10": 109.6,
+        "median": 692.5,
+        "p90": 1390.8
+      },
+      "plantedFrac": 0.209
+    },
+    "minus_t": {
+      "samples": 372,
+      "bodySpeedMps": 1.441,
+      "modelYawDeg": 45,
+      "holderYawDeg": 45,
+      "clipTimeS": 46.064,
+      "facingDegMedian": -90,
+      "facingErrDeg": {
+        "median": 0,
+        "p90": 72.82
+      },
+      "stanceLateralSlipMmPerS": {
+        "p10": 0,
+        "median": 0.6,
+        "p90": 419.4,
+        "max": 1189.6
+      },
+      "stanceAlongSlipMmPerS": {
+        "p10": 128.1,
+        "median": 643,
+        "p90": 1405.5
+      },
+      "plantedFrac": 0.195
+    }
+  },
+  "turn": {
+    "samples": 565,
+    "maxYawTargetStepDeg": 3.31,
+    "maxYawStepDeg": 2.97,
+    "turnSeconds": 0.883,
+    "turnBodyTravelM": 1.044,
+    "startBodyTravel04sM": 0.268,
+    "startStanceFootTravel04sM": 0.057,
+    "maxHolderDyMm": 8.15,
+    "handSwingForeAftMm": {
+      "left": 207.3,
+      "right": 266.5
+    },
+    "handSwingCorrelation": -0.993,
+    "walkSoleAboveBaseMm": {
+      "min": -13.9,
+      "p10": -4.2,
+      "median": 14.4,
+      "max": 55.4
+    },
+    "walkSoleAllAboveBaseMm": {
+      "median": 14.4,
+      "max": 55.4
+    }
+  },
+  "soleByPhase": {
+    "all_stop": {
+      "samples": 55,
+      "activePhase": "all_stop",
+      "soleOffsetMm": -0.3
+    },
+    "roosevelt_flow": {
+      "samples": 54,
+      "activePhase": "clearance",
+      "soleOffsetMm": -0.3
+    },
+    "pedestrian_crossing": {
+      "samples": 54,
+      "activePhase": "clearance",
+      "soleOffsetMm": -0.3
+    },
+    "lane90_release": {
+      "samples": 55,
+      "activePhase": "lane90_release",
+      "soleOffsetMm": -0.3
+    }
+  },
+  "stand": {
+    "samples": 90,
+    "postY": 0.217,
+    "groundY": 0.2127,
+    "holderY": 0.217,
+    "soleOffsetFromHolderMm": -1.6,
+    "walkKinds": [
+      null
+    ],
+    "soleMinMedian": 0.2154,
+    "soleAllMinMedian": 0.2154,
+    "clearanceAbovePostMm": -1.6,
+    "clearanceAboveGroundMm": 2.7,
+    "clearanceAllAboveGroundMm": 2.7,
+    "facingDeg": 170.29,
+    "footSepDeg": -189.71,
+    "modelYawDeg": 45,
+    "holderYawDeg": 144.71
+  },
+  "consoleErrors": []
+}

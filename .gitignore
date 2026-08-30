@@ -15,3 +15,15 @@ video/*.mp4
 video/remotion/node_modules/
 
 .DS_Store
+
+# 影像管線:權重、虛擬環境、產生的資料、憑證
+vision/.venv/
+vision/models/
+vision/out/
+data/live/
+data/snapshots/
+__pycache__/
+*.onnx
+*.pt
+tdx_credentials.json
+.env

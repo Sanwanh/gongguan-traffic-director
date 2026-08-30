@@ -1454,15 +1454,15 @@ async function runExtend(s) {
     `${conventionHits}/8 項慣例命中:${Object.entries(conventions).map(([k, v]) => `${v ? "○" : "✗"}${k}`).join(" ")};提示文字「${String(c9.hintText).split("\n")[0].trim()}」;Persp↔Ortho 往返距離誤差 ${c9.projectionRoundTrip.distanceErrorM}m`);
   // 10
   const c10 = after.c10;
-  const tabStable = Object.values(c10.perTab).every((t) => t.params === 94 && t.rows === c10.rowCount);
-  check("10", "參數面板 94 項完整、分頁不 unmount、set/reset 有效",
-    c10.paramCount === 94 && c10.rowCount === 94 && c10.groupSum === 94 && tabStable
+  const tabStable = Object.values(c10.perTab).every((t) => t.params === 100 && t.rows === c10.rowCount);
+  check("10", "參數面板 100 項完整、分頁不 unmount、set/reset 有效",
+    c10.paramCount === 100 && c10.rowCount === 100 && c10.groupSum === 100 && tabStable
       && c10.hasSearch && c10.hasResetAll
       && c10.setParamRoundTrip.setWorked && c10.setParamRoundTrip.resetWorked,
     `__params()=${c10.paramCount}、DOM row=${c10.rowCount}、群組加總=${c10.groupSum}(${c10.groups.map((g) => `${g.group}:${g.count}`).join(",")});三分頁下 params=${Object.entries(c10.perTab).map(([k, v]) => `${k}:${v.params}/${v.rows}`).join(" ")};set/reset ${JSON.stringify(c10.setParamRoundTrip)}`);
   check("10b", "可擴充性:原始碼加一筆,面板自動長出來",
     extend.paramCount === 95 && extend.probeFound && extend.rowRendered && extend.setWorks === 7,
-    `注入 render.probeExtensibility 後 __params()=${extend.paramCount}(基準 94),DOM 有列=${extend.rowRendered}「${extend.rowText}」,畫面與效能群組計數=${extend.renderGroupCount},__setParam 設 7 得 ${extend.setWorks}`);
+    `注入 render.probeExtensibility 後 __params()=${extend.paramCount}(基準 100),DOM 有列=${extend.rowRendered}「${extend.rowText}」,畫面與效能群組計數=${extend.renderGroupCount},__setParam 設 7 得 ${extend.setWorks}`);
   // 11 既有功能
   const keep = after.keep;
   const idsOk = Object.values(keep.ids).every(Boolean);

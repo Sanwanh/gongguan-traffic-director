@@ -144,6 +144,10 @@ input:focus-visible + .switch {
   display: none;
 }
 
+/* 這是一條共用規則。§23 清 .panel-footer 死碼時用正則把選擇器清單的最後一項
+   連同整個宣告區塊一起吃掉了,導致下面 8 個元件全部失去 display:flex ——
+   .switch-row 變 inline、.icon-button/.command-button 變 block。
+   清死碼時要看清楚它是不是掛在共用選擇器上。 */
 .brand-block,
 .model-status,
 .active-phase,
@@ -151,7 +155,10 @@ input:focus-visible + .switch {
 .command-button,
 .switch-row,
 .secondary-button,
-.icon-button,
+.icon-button {
+  display: flex;
+  align-items: center;
+}
 
 .brand-block {
   gap: var(--sp-2);
@@ -1940,6 +1947,43 @@ body.is-recording .viewport-menus {
   font-variant-numeric: tabular-nums;
 }
 
+/* §26 純號誌模式:圖例上的狀態徽章 + 面板最上面那顆總開關。
+   §22 的簡約原則:開關本身沿用既有的 .switch-row,只加一條分隔線與
+   「關掉時整條變暗」的狀態,不新增任何新的視覺語彙。 */
+.legend-station.is-off {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+/* `.scene-legend span { display: flex }` 的特異性高過 UA 的
+   `[hidden] { display: none }`,不補這條的話 hidden 屬性會失效
+   (實測:機器人開著的時候徽章照樣掛在圖例上)。 */
+.scene-legend span[hidden] {
+  display: none;
+}
+
+/* 註:`.switch-row` 的 justify-content / gap 與 `.switch` 的 flex 基底都是
+   為 flex 版面寫的,但共用那份選擇器清單(.brand-block, …, .icon-button)
+   後來只剩下 gap 一個宣告,display:flex 掉了 —— 所有開關列因此是 inline,
+   切換鈕掉到文字下面。這是既有狀況,不在這一節的修改範圍;但「指揮」分頁
+   只有這一顆開關,單獨補 flex 不會和任何鄰居不一致,而 san 要的就是這顆
+   按鈕要一眼看得懂,所以只在這裡補。 */
+.controller-switch {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--sp-3, 12px);
+  padding-bottom: var(--sp-3, 12px);
+  border-bottom: 1px solid var(--line);
+}
+
+body.is-no-controller .controller-switch strong {
+  color: var(--muted);
+}
+
+body.is-no-controller .legend-swatch.controller {
+  opacity: 0.25;
+}
+
 /* §19 全部參數面板 ------------------------------------------------------- */
 .param-console {
   margin-top: 18px;
@@ -2219,4 +2263,82 @@ body.is-recording .viewport-menus {
   font-size: var(--fs-micro);
   line-height: 1.55;
   resize: vertical;
+}
+
+/* ---------------------------------------------------------------------------
+   §24 真實資料層。四顆來源按鈕塞在同一列會過窄,所以這一組 .segmented 允許
+   換行;其餘一律沿用既有的 .param-group / .field-row / .spawn-summary。
+   --------------------------------------------------------------------------- */
+#dataSourceSegmented {
+  flex-wrap: wrap;
+}
+
+#dataSourceSegmented button {
+  min-width: 34px;
+  padding: 6px 7px;
+}
+
+.data-source-url {
+  margin-top: 9px;
+  margin-bottom: 0;
+}
+
+.data-source-state {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+/* 新鮮度徽章。四種狀態的顏色是「越不即時越搶眼」:即時=綠、走廊代理=琥珀、
+   過期/歷史=紅、合成=中性。san 絕不可能把紅色徽章誤讀成即時資料。 */
+.data-source-badge {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  background: #101f2b;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.data-source-badge.is-live {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-dark);
+}
+
+.data-source-badge.is-proxy {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: var(--amber-dark);
+}
+
+.data-source-badge.is-stale {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-dark);
+}
+
+.data-source-note {
+  margin-top: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--amber);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  background: var(--amber-dark);
+  font-size: var(--fs-micro);
+  line-height: 1.6;
+}
+
+.data-source-note.is-stale {
+  border-left-color: var(--red);
+  background: var(--red-dark);
 }

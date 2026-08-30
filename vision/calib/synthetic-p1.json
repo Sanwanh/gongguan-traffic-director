@@ -1,0 +1,152 @@
+{
+  "schema": "gongguan.vision.calibration.v1",
+  "id": "synthetic-p1",
+  "createdAt": "2026-08-31T02:15:05+08:00",
+  "frame": {
+    "width": 1920,
+    "height": 1080
+  },
+  "H": [
+    [
+      -0.006566440948259442,
+      -0.025264772419264506,
+      20.277657619929162
+    ],
+    [
+      -0.0078100207390715505,
+      0.01870038003905889,
+      -3.770536103641267
+    ],
+    [
+      -1.2083410194800421e-06,
+      -0.0008752548571525575,
+      0.13736436407120817
+    ]
+  ],
+  "HMapsTo": "simulation (s, t) in metres",
+  "points": [
+    {
+      "px": [
+        1699.2643784178144,
+        598.4910109116763
+      ],
+      "s": 15.448352774943663,
+      "t": 15.062837646020444,
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_27",
+      "residualM": 0.00655
+    },
+    {
+      "px": [
+        197.5013735721564,
+        580.6644070408444
+      ],
+      "s": -11.600036910213616,
+      "t": -14.949044753818887,
+      "label": "GongguanV50_MainCrosswalk_Staggered657_Stripe_21",
+      "residualM": 0.01606
+    },
+    {
+      "px": [
+        952.6474443104498,
+        1067.081232494264
+      ],
+      "s": 16.217746927390504,
+      "t": -10.956556260050034,
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_03",
+      "residualM": 0.00435
+    },
+    {
+      "px": [
+        884.6184845142701,
+        405.70602796770015
+      ],
+      "s": -19.248309009070315,
+      "t": 14.156914492158865,
+      "label": "GongguanV50_MainCrosswalk_Staggered657_Stripe_00",
+      "residualM": 0.04018
+    },
+    {
+      "px": [
+        1263.2882301653112,
+        668.1548510532173
+      ],
+      "s": 10.943334306995846,
+      "t": 2.5249054577228405,
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_14",
+      "residualM": 0.03796
+    },
+    {
+      "px": [
+        552.8812767895985,
+        988.1107139190945
+      ],
+      "s": 11.439892901133033,
+      "t": -14.267753705596382,
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_00",
+      "residualM": 0.01757
+    },
+    {
+      "px": [
+        550.0521433728773,
+        553.1092488502869
+      ],
+      "s": -7.78826161730082,
+      "t": -6.552714988696685,
+      "label": "GongguanV50_MainCrosswalk_Staggered657_Stripe_14",
+      "residualM": 0.04072
+    },
+    {
+      "px": [
+        991.0182473864612,
+        793.5271310765684
+      ],
+      "s": 11.194341795672852,
+      "t": -5.963691972076599,
+      "label": "GongguanV50_MainCrosswalk_Straight656_Stripe_09",
+      "residualM": 0.04926
+    }
+  ],
+  "roi": {
+    "id": "visible",
+    "sMin": -19.248309009070315,
+    "sMax": 16.217746927390504,
+    "tMin": -13.22,
+    "tMax": 14.18,
+    "lanes": 6,
+    "note": "校正點在地面上的包絡 ∩ 車道帶。"
+  },
+  "quality": {
+    "pointCount": 8,
+    "cond": 4.3352,
+    "condLimit": 100.0,
+    "residualM": {
+      "median": 0.02777,
+      "max": 0.04926,
+      "ratio": 1.774
+    },
+    "monteCarlo": {
+      "sigmaPx": 1.0,
+      "trials": 200,
+      "probes": 158,
+      "p50M": 0.0274,
+      "p95M": 0.107,
+      "maxM": 0.4446
+    },
+    "monteCarloLimitM": 0.5,
+    "gates": {
+      "count": "pass",
+      "cond": "pass",
+      "residualRatio": "pass",
+      "monteCarlo": "pass"
+    },
+    "verdict": "pass",
+    "reasons": [],
+    "method": "normalized-DLT-least-squares"
+  },
+  "radialCorrectionM": {},
+  "note": "由合成真值 truth_p1.json 產生,點擊雜訊 σ=1.0px。真實攝影機請改用 calibrate.html 或手填 template。",
+  "privacy": {
+    "storesImagery": false,
+    "note": "校正檔只有像素座標與地面座標,沒有任何影像資料。"
+  }
+}
