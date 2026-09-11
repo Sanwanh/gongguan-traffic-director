@@ -1,0 +1,8 @@
+{
+  "source_release": "https://github.com/Sanwanh/Gongguan-Blender-Scene/releases/tag/v55-video-realism-20260907",
+  "source_sha256": "76f7080f79f817a6b62bec3b6925bf86ea1158f13b92fd82cc3059e95dd22fa8",
+  "environment_sha256": "2f7776a9caa9c3f1a86d5ae5f980684fff1b1eea15de64c2b8027725d3e4ea02",
+  "selected_objects": 4848,
+  "procedural_factor_fallbacks": 588,
+  "notes": "V55 static scene; original V54 live signals and KBot retained. Cycles procedural microtextures use Principled factors in GLTF; packed facade image textures retained."
+}

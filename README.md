@@ -3,12 +3,13 @@
 **▶ 線上展示:https://sanwanh.github.io/gongguan-traffic-director/**
 
 台北公館路口(羅斯福路 × 舟山路 × 巷90)的數位孿生,一台人形機器人 KBot
-站在路口指揮交通。場景來自實測的 Blender V54 掃描,車道、斑馬線、公車月台、
-停止線全部從 GLB 幾何量出來,不是憑感覺畫的。
+站在路口指揮交通。網站場景已更新至 [Blender V55](https://github.com/Sanwanh/Gongguan-Blender-Scene/releases/tag/v55-video-realism-20260907)，新增影片參考店面、封裝招牌貼圖與立體樹冠。道路與主要建築沿用 V53 基底；交通模擬、KBot 與獨立動態號誌沿用網站原有設定。這是視覺近似，不是測量級掃描。
+
+網頁版保留可匯出的幾何與影像貼圖；Cycles 程序式微紋理使用 Principled 材質基礎值，光線由即時渲染器提供，不等同 Cycles 預覽。匯出來源與雜湊記錄於 `viewer/models/v55_export.json`。
 
 **純前端、零 CDN、完全離線可跑。** three.js r170,原生 ES module,無框架、無建置步驟。
 
-![路口俯視](docs/screenshots/v9_after_1920.png)
+![路口俯視](docs/screenshots/v55_viewer.png)
 
 ---
 

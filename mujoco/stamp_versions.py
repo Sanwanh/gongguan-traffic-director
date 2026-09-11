@@ -51,8 +51,8 @@ def main() -> int:
         "../traffic_rules/taiwan_traffic_director_rules.json":
             PACKAGE_ROOT / "traffic_rules"
             / "taiwan_traffic_director_rules.json",
-        "models/gongguan_v54_environment.glb":
-            VIEWER / "models" / "gongguan_v54_environment.glb",
+        "models/gongguan_v55_environment.glb":
+            VIEWER / "models" / "gongguan_v55_environment.glb",
         "models/kbot_traffic_director.glb":
             VIEWER / "models" / "kbot_traffic_director.glb",
         "models/gongguan_v54_signal_aspects.glb":

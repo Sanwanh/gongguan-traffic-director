@@ -4,8 +4,14 @@
 我方的修改內容。專案硬規則:零 CDN、完全離線;任何外部資產必須 vendor 進 repo
 並在此登錄。授權不明的一律不得引入。
 
-專案自製資產(`gongguan_v54_environment.glb`、`gongguan_v54_signal_aspects.glb`、
+專案自製資產(`gongguan_v55_environment.glb`、`gongguan_v54_environment.glb`、`gongguan_v54_signal_aspects.glb`、
 `kbot_traffic_director.glb`)不在本檔案範圍內。
+
+## V55 網頁場景來源
+
+`gongguan_v55_environment.glb` 匯出自專案擁有者指定的 [V55 Release](https://github.com/Sanwanh/Gongguan-Blender-Scene/releases/tag/v55-video-realism-20260907)。
+保留新版店面、兩張封裝影片影像貼圖與 32 組自然樹冠；不包含來源 MOV、Blender 自訂屬性或本機路徑。來源檔與產出 SHA-256 記錄於 `v55_export.json`。
+Web 版使用 Principled 基礎值替代 Cycles 程序式微紋理，不宣稱與離線渲染完全相同。
 
 ---
 

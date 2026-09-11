@@ -50,7 +50,7 @@ import {
 } from "./traffic_simulation_core.mjs?v=c99b8d4f";
 
 const RULES_URL = "../traffic_rules/taiwan_traffic_director_rules.json?v=b1a6379f";
-const ENVIRONMENT_URL = "models/gongguan_v54_environment.glb?v=685c61c0";
+const ENVIRONMENT_URL = "models/gongguan_v55_environment.glb?v=2f7776a9";
 const KBOT_URL = "models/kbot_traffic_director.glb?v=ee079987";
 const SIGNAL_ASPECTS_URL = "models/gongguan_v54_signal_aspects.glb?v=d52a3745";
 const KBOT_APPEARANCE_PROFILE = "black-high-contrast-v1";
@@ -395,14 +395,14 @@ function refreshModelStatus() {
   if (runtime.environmentReady && runtime.kbotReady && runtime.signalsReady) {
     setModelStatus(
       "ready",
-      `V54＋綠色 KBot＋${runtime.signalHeadCount} 組號誌｜${runtime.renderProfile.targetFps} FPS`,
+      `V55＋綠色 KBot＋${runtime.signalHeadCount} 組號誌｜${runtime.renderProfile.targetFps} FPS`,
     );
   } else if (runtime.environmentReady && runtime.signalsReady) {
-    setModelStatus("loading", "V54 實景與號誌已載入，載入綠色 KBot ORCA");
+    setModelStatus("loading", "V55 場景與號誌已載入，載入綠色 KBot ORCA");
   } else if (runtime.environmentReady) {
-    setModelStatus("loading", "V54 實景已載入，載入實景號誌與綠色 KBot");
+    setModelStatus("loading", "V55 場景已載入，載入實景號誌與綠色 KBot");
   } else {
-    setModelStatus("loading", "載入指定 V54 Blender 實景");
+    setModelStatus("loading", "載入指定 V55 Blender 實景");
   }
 }
 
@@ -410,7 +410,7 @@ function refreshModelStatus() {
 // §23 靜態場景合批
 //
 // 實測:2720 個 draw call 裡只有 289 個是人車(actor),其餘約 2400 個
-// (3.44M 三角形的 96%)全部來自 gongguan_v54_environment.glb 的 4860 個
+// (3.44M 三角形的 96%)全部來自 gongguan_v55_environment.glb 的 4860 個
 // 靜態 mesh。three.js 每個 draw call 的 CPU 成本(狀態切換 + uniform 上傳)
 // 才是這個場景的真正瓶頸,不是三角形數量。
 //
@@ -514,7 +514,7 @@ function mergeStaticEnvironment(root) {
   }
 
   const batchRoot = new THREE.Group();
-  batchRoot.name = "Canonical_V54_Environment_Merged";
+  batchRoot.name = "Canonical_V55_Environment_Merged";
   const rootInverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
 
   for (const bucket of buckets.values()) {
@@ -601,7 +601,7 @@ function loadEnvironment() {
       ENVIRONMENT_URL,
       (gltf) => {
         runtime.environment = gltf.scene;
-        runtime.environment.name = "Canonical_V54_Environment";
+        runtime.environment.name = "Canonical_V55_Environment";
         runtime.environment.traverse((node) => {
           if (node.isMesh) {
             node.castShadow = false;
@@ -624,7 +624,7 @@ function loadEnvironment() {
         draco.dispose();
         reject(
           new Error(
-            `指定 V54 實景載入失敗；已停止，不顯示替代場景。${error.message ?? error}`,
+            `指定 V55 場景載入失敗；已停止，不顯示替代場景。${error.message ?? error}`,
           ),
         );
       },
@@ -937,7 +937,7 @@ function loadSignalAspects() {
       (error) => {
         reject(
           new Error(
-            `V54 實景號誌載入失敗；控制保持全停。${error.message ?? error}`,
+            `V55 場景號誌載入失敗；控制保持全停。${error.message ?? error}`,
           ),
         );
       },
@@ -8392,7 +8392,7 @@ async function main() {
     animate();
   } catch (error) {
     console.error(error);
-    setModelStatus("error", "指定 V54 場景載入失敗");
+    setModelStatus("error", "指定 V55 場景載入失敗");
     setFatalError(
       `模擬無法啟動：${error.message}。請從專案根目錄執行 python3 -m http.server 8765。`,
     );
