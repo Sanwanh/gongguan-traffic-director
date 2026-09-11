@@ -42,7 +42,7 @@ bpy.ops.object.convert(target='MESH')
 out = ROOT / 'viewer/models/gongguan_v55_environment.glb'
 bpy.ops.export_scene.gltf(filepath=str(out), export_format='GLB', use_selection=True,
     export_apply=True, export_yup=True, export_animations=False, export_cameras=False,
-    export_lights=False, export_extras=False, export_image_format='AUTO',
+    export_lights=False, export_extras=False, export_image_format='JPEG', export_image_quality=88,
     export_draco_mesh_compression_enable=True, export_draco_mesh_compression_level=6)
 report = {'source_release':'https://github.com/Sanwanh/Gongguan-Blender-Scene/releases/tag/v55-video-realism-20260907',
     'source_sha256':hashlib.sha256(Path(bpy.data.filepath).read_bytes()).hexdigest(),

@@ -50,7 +50,7 @@ import {
 } from "./traffic_simulation_core.mjs?v=c99b8d4f";
 
 const RULES_URL = "../traffic_rules/taiwan_traffic_director_rules.json?v=b1a6379f";
-const ENVIRONMENT_URL = "models/gongguan_v55_environment.glb?v=2f7776a9";
+const ENVIRONMENT_URL = "models/gongguan_v55_environment.glb?v=889748d9";
 const KBOT_URL = "models/kbot_traffic_director.glb?v=ee079987";
 const SIGNAL_ASPECTS_URL = "models/gongguan_v54_signal_aspects.glb?v=d52a3745";
 const KBOT_APPEARANCE_PROFILE = "black-high-contrast-v1";
